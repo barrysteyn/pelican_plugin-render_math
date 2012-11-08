@@ -15,7 +15,7 @@ Then use as follows by adding:
 
 to your settings.py
 
-Be careful: Not loading the plugin is eas to do, and difficult to detect. To
+Be careful: Not loading the plugin is easy to do, and difficult to detect. To
 make life easier, find where pelican is installed, and then copy the plugin
 there. Then do this:
 
@@ -23,7 +23,7 @@ there. Then do this:
 
 Usage
 -----
-Add the following to your template file between the <head> parameters (for
+Add the following to your template file between the `<head>` parameters (for
 the NotMyIdea template, this file is base.html)
 
     {% if article and article.latex %}
