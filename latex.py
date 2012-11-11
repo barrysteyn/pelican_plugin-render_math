@@ -56,7 +56,7 @@ latexScript = '\n\
            extensions: ["tex2jax.js"],\n\
            jax: ["input/TeX","output/HTML-CSS"],\n\
            tex2jax: { \n\
-               inlineMath: [ [\'$\',\'$\'], ["\\(","\\)"] ],\n\
+               inlineMath: [ [\'$\',\'$\'] ],\n\
                displayMath: [ [\'$$\',\'$$\'], ["\\[","\\]"] ],\n\
                processEscapes: true },\n\
            "HTML-CSS": {\n\
