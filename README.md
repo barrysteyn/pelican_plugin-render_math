@@ -36,8 +36,8 @@ selected articles, then in settings.py, add
     LATEX = 'article'
 
 And in each article, add the metadata key 'latex'. For example, with the above
-settings, creating an article called math, I would just include 'latex' as
-part of the metadata:
+settings, creating an article that I want to render latex math, I would just 
+include 'Latex' as part of the metadata without any value:
 
     Date: 1 sep 2012
     Status: draft

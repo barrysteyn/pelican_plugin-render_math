@@ -57,7 +57,7 @@ latexScript = '\n\
            jax: ["input/TeX","output/HTML-CSS"],\n\
            tex2jax: { \n\
                inlineMath: [ [\'$\',\'$\'] ],\n\
-               displayMath: [ [\'$$\',\'$$\'], ["\\[","\\]"] ],\n\
+               displayMath: [ [\'$$\',\'$$\'] ],\n\
                processEscapes: true },\n\
            "HTML-CSS": {\n\
                styles: { ".MathJax .mo, .MathJax .mi": {color: "black ! important"}}\n\
