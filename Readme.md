@@ -52,8 +52,8 @@ Example
 
 The two most popular ways to embed latex are as follows:
 
-1. **Inline** - between `$..$`, for example, `$x^2$`.
-2. **Displayed Math** - between `$$..$$`, for example, `$$x^2$$`.
+1. **Inline** - between `$..$`, for example, `$`x^2`$`.
+2. **Displayed Math** - between `$$`..`$$`, for example, `$$`x^2`$$`.
 3. **Equations** - between `\begin` and `\end`, for example, `begin{equation}` x^2 `\end{equation}`.
     
 To see an example of this plugin in action, look at [this article](http://doctrina.org/How-RSA-Works-With-Examples.html). To see how
