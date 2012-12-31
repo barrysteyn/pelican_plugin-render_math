@@ -47,11 +47,8 @@ include 'Latex' as part of the metadata without any value:
     Status: draft
     Latex:
 
-Example
--------
-
-The two most popular ways to embed latex are as follows:
-
+Latex Examples
+--------------
 ###Inline
 Latex between `$`..`$`, for example, `$`x^2`$`, will be rendered inline with respect to the current html block.
 
@@ -60,5 +57,7 @@ Latex between `$$`..`$$`, for example, `$$`x^2`$$`, will be rendered centered in
 
 ###Equations
 Latex between `\begin` and `\end`, for example, `begin{equation}` x^2 `\end{equation}`, will be rendered centered in a new paragraph with a right justified equation number at the top of the paragraph. This equation number can be referenced in the document. To do this, use a `label` inside of the equation format and then refer to that label using `ref`. For example: `begin{equation}` `\label{eq}` X^2 `\end{equation}`. Now refer to that equation number by `$`\ref{eq}`$`.
-    
+   
+Template And Article Examples
+-----------------------------
 To see an example of this plugin in action, look at [this article](http://doctrina.org/How-RSA-Works-With-Examples.html). To see how this plugin works with a template, look at [this template](https://github.com/barrysteyn/pelican_theme-personal_blog).
