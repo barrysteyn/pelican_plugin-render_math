@@ -3,8 +3,8 @@ Latex Plugin For Pelican
 
 This plugin allows you to write mathematical equations in your articles using Latex.
 It uses the MathJax Latex JavaScript library to render latex that is embedded in
-between $..$. It also allows for writing equations in by using \begin{equation}...
-\end{equation}.
+between `$..$` for inline math and `$$..$$` for displayed math. It also allows for 
+writing equations in by using `\begin{equation}`...`\end{equation}`.
 
 Settings
 --------
@@ -49,5 +49,16 @@ include 'Latex' as part of the metadata without any value:
 
 Example
 -------
+
+The two most popular ways to embed latex are as follows:
+
+1. **Inline** - between `$..$`, for example, `$x^2$`.
+2. **Displayed Math** - between `$$..$$`, for example, `$$x^2$$`.
+3. **Equations** - between `\begin` and `\end`, for example,
+
+    \begin{equation}
+        x^2
+    \end{equation}
+
 To see an example of this plugin in action, look at [this article](http://doctrina.org/How-RSA-Works-With-Examples.html). To see how
 this plugin works with a template, look at [this template](https://github.com/barrysteyn/pelican_theme-personal_blog).
