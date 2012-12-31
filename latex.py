@@ -49,7 +49,7 @@ part of the metadata:
 from pelican import signals
 
 latexScript = '\n\
-    <script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js" type= "text/javascript">\n\
+    <script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type= "text/javascript">\n\
        MathJax.Hub.Config({\n\
            HTML: ["input/TeX","output/HTML-CSS"],\n\
            TeX: { extensions: ["AMSmath.js","AMSsymbols.js"], equationNumbers: { autoNumber: "AMS" } },\n\
