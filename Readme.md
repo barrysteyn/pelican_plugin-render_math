@@ -9,11 +9,9 @@ writing equations in by using `\begin{equation}`...`\end{equation}`.
 Settings
 --------
 To enable, ensure that the plugin is installed somewhere that is accessible.
-Then use as follows by adding to the settings file:
+Then use as follows by adding the following to your settings.py:
 
     PLUGINS = ["latex"]
-
-to your settings.py
 
 Be careful: Not loading the plugin is easy to do, and difficult to detect. To
 make life easier, find where pelican is installed, and then copy the plugin
@@ -21,7 +19,7 @@ there. An easy way to find where pelican is installed is to verbose list the
 available themes by typing `pelican-themes -l -v`. 
 
 Once the pelican folder is found, copy plugin to the `plugins` folder. Then 
-add to settings file like this:
+add to settings.py like this:
 
     PLUGINS = ["pelican.plugins.latex"]
 
@@ -50,14 +48,24 @@ include 'Latex' as part of the metadata without any value:
 Latex Examples
 --------------
 ###Inline
-Latex between `$`..`$`, for example, `$`x^2`$`, will be rendered inline with respect to the current html block.
+Latex between `$`..`$`, for example, `$`x^2`$`, will be rendered inline 
+with respect to the current html block.
 
 ###Displayed Math
-Latex between `$$`..`$$`, for example, `$$`x^2`$$`, will be rendered centered in a new paragraph.
+Latex between `$$`..`$$`, for example, `$$`x^2`$$`, will be rendered centered in a 
+new paragraph.
 
 ###Equations
-Latex between `\begin` and `\end`, for example, `begin{equation}` x^2 `\end{equation}`, will be rendered centered in a new paragraph with a right justified equation number at the top of the paragraph. This equation number can be referenced in the document. To do this, use a `label` inside of the equation format and then refer to that label using `ref`. For example: `begin{equation}` `\label{eq}` X^2 `\end{equation}`. Now refer to that equation number by `$`\ref{eq}`$`.
+Latex between `\begin` and `\end`, for example, `begin{equation}` x^2 `\end{equation}`, 
+will be rendered centered in a new paragraph with a right justified equation number 
+at the top of the paragraph. This equation number can be referenced in the document. 
+To do this, use a `label` inside of the equation format and then refer to that label 
+using `ref`. For example: `begin{equation}` `\label{eq}` X^2 `\end{equation}`. Now 
+refer to that equation number by `$`\ref{eq}`$`.
    
 Template And Article Examples
 -----------------------------
-To see an example of this plugin in action, look at [this article](http://doctrina.org/How-RSA-Works-With-Examples.html). To see how this plugin works with a template, look at [this template](https://github.com/barrysteyn/pelican_theme-personal_blog).
+To see an example of this plugin in action, look at 
+[this article](http://doctrina.org/How-RSA-Works-With-Examples.html). To see how 
+this plugin works with a template, look at 
+[this template](https://github.com/barrysteyn/pelican_theme-personal_blog).
