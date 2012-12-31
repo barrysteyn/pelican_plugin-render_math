@@ -56,6 +56,7 @@ The two most popular ways to embed latex are as follows:
 2. **Displayed Math** - between `$$..$$`, for example, `$$x^2$$`.
 3. **Equations** - between `\begin` and `\end`, for example,
 
+
     \begin{equation}
         x^2
     \end{equation}
