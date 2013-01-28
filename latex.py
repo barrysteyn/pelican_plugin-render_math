@@ -26,16 +26,16 @@ add to settings.py like this:
 
     PLUGINS = ["pelican.plugins.latex"]
 
-Usage
------
-Add the following to your template file between the `<head>` parameters (for
-the NotMyIdea template, this file is base.html)
+Now all that is left to do is to embed the following to your template file 
+between the `<head>` parameters (for the NotMyIdea template, this file is base.html)
 
     {% if article and article.latex %}
         {{ article.latex }}
     {% endif %}
 
-Now latex will be embedded in every article. If however you want latex only for
+Usage
+-----
+Latex will be embedded in every article. If however you want latex only for
 selected articles, then in settings.py, add
 
     LATEX = 'article'
