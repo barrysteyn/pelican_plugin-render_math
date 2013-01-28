@@ -8,9 +8,10 @@ It uses the MathJax Latex JavaScript library to render latex that is embedded in
 between `$..$` for inline math and `$$..$$` for displayed math. It also allows for 
 writing equations in by using `\begin{equation}`...`\end{equation}`.
 
-Settings
---------
-To enable, ensure that the plugin is installed somewhere that is accessible.
+Installation
+------------
+
+To enable, ensure that `latex.py` is put somewhere that is accessible.
 Then use as follows by adding the following to your settings.py:
 
     PLUGINS = ["latex"]
@@ -20,7 +21,7 @@ make life easier, find where pelican is installed, and then copy the plugin
 there. An easy way to find where pelican is installed is to verbose list the
 available themes by typing `pelican-themes -l -v`. 
 
-Once the pelican folder is found, copy plugin to the `plugins` folder. Then 
+Once the pelican folder is found, copy `latex.py` to the `plugins` folder. Then 
 add to settings.py like this:
 
     PLUGINS = ["pelican.plugins.latex"]
