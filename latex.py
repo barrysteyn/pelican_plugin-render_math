@@ -40,9 +40,23 @@ def addLatex(gen, metadata):
     else:
         metadata['latex'] = latexScript
 
+def mathTag(instance):
+    try:
+        mathTag.latexRe
+    catch AttributeError:
+        mathTag=re.compile(r"")
+
+    def insertMathTag(matchObj):
+        return "<math>"+matchObj.group(0)+"</math>"
+
+
+    if 'TYPOGRIFY' in instance.settings.keys() and instance.settings['TYPOGRIFY'] == True:
+        instance._content = re.sub(r'', insertMathTag, instance._content, 0, re.IGNORECASE) 
+
 def register():
     """
         Plugin registration
     """
     signals.article_generator_context.connect(addLatex)
     signals.page_generator_context.connect(addLatex)
+    signals.content_object_init.connect(mathTag)
