@@ -34,6 +34,11 @@ between the `<head>` parameters (for the NotMyIdea template, this file is base.h
         {{ page.latex }}
     {% endif %}
 
+### Typogrify
+This plugin enables typogrify to play nicely with Latex (i.e. typogrify can be enabled
+and Latex will be rendered correctly). In order for this to happen, version 2.02 (or above)
+of typogrify is required.
+
 Usage
 -----
 Latex will be embedded in every article. If however you want latex only for
