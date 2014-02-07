@@ -11,7 +11,7 @@ writing equations in by using `\begin{equation}`...`\end{equation}`.
 Typogrify Compatibility
 -----------------------
 This plugin now plays nicely with typogrify, but it requires
-typogrify version 2.02 or above
+typogrify version 2.07 or above
 """
 
 from pelican import signals
@@ -51,10 +51,10 @@ def addLatex(gen, metadata):
 
 def applyTypogrify(instance):
     """
-        Will wrap <math> tags around latex if typogrify option
+        Will wrap <mathjax> tags around latex if typogrify option
         has been enabled, and then apply typogrfiy filters
-        with a setting to ignore <math> tags (need version 
-        2.02 of typogrify or above for this)
+        with a setting to ignore <mathjax> tags (need version 
+        2.07 of typogrify or above for this)
     """
 
     if not instance._content:
