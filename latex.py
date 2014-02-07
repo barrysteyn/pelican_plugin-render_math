@@ -17,24 +17,30 @@ typogrify version 2.07 or above
 from pelican import signals
 from pelican import contents
 import re
-import sys
 
+# Reference about dynamic loading of MathJax can be found at http://docs.mathjax.org/en/latest/dynamic.html
+# The https cdn address can be found at http://www.mathjax.org/resources/faqs/#problem-https
 latexScript = """
-    <script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type= "text/javascript">
-       MathJax.Hub.Config({
-           config: ["MMLorHTML.js"],
-           jax: ["input/TeX","input/MathML","output/HTML-CSS","output/NativeMML"],
-           TeX: { extensions: ["AMSmath.js","AMSsymbols.js","noErrors.js","noUndefined.js"], equationNumbers: { autoNumber: "AMS" } },
-           extensions: ["tex2jax.js","mml2jax.js","MathMenu.js","MathZoom.js"],
-           tex2jax: { 
-               inlineMath: [ [\'$\',\'$\'] ],
-               displayMath: [ [\'$$\',\'$$\'] ],
-               processEscapes: true 
-           },
-           "HTML-CSS": {
-               styles: { ".MathJax .mo, .MathJax .mi": {color: "black ! important"}}
-           }
-       });
+    <script type= "text/javascript">
+        var s = document.createElement('script');
+        s.type = 'text/javascript';
+        s.src = 'https:' == document.location.protocol ? 'https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js' : 'http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'; 
+        s[(window.opera ? "innerHTML" : "text")] =
+            "MathJax.Hub.Config({" + 
+            "    config: ['MMLorHTML.js']," + 
+            "    jax: ['input/TeX','input/MathML','output/HTML-CSS','output/NativeMML']," +
+            "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," + 
+            "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+            "    tex2jax: { " +
+            "        inlineMath: [ [\'$\',\'$\'] ], " +
+            "        displayMath: [ [\'$$\',\'$$\'] ]," +
+            "        processEscapes: true "+
+            "    }, " +
+            "    'HTML-CSS': { " +
+            "        styles: { '.MathJax .mo, .MathJax .mi': {color: 'black ! important'}} " +
+            "    } " +
+            "}); ";
+        (document.body || document.getElementsByTagName('head')[0]).appendChild(s);
     </script>
 """
 
@@ -69,7 +75,7 @@ def applyTypogrify(instance):
     def mathTagWrap(match):
         return '<mathjax>'+match.group(0)+'</mathjax>'
 
-    instance._content, numSubs = applyTypogrify.latexRe.subn(mathTagWrap, instance._content, 0) 
+    instance._content, numSubs = applyTypogrify.latexRe.subn(mathTagWrap, instance._content) 
 
     ignoreTags = ['mathjax'] if numSubs > 0 else None
     from typogrify.filters import typogrify
@@ -95,6 +101,6 @@ def register():
     """
         Plugin registration
     """
-    signals.initialized.connect(pelicanInit)
+    signals.initialized.connect(pelicanInit) # used for typogrify functionality
     signals.article_generator_context.connect(addLatex)
     signals.page_generator_context.connect(addLatex)
