@@ -64,7 +64,7 @@ def setMathJaxSettings(dictObj):
     """
         Set user specified MathJax settings (see README for more details)
     """
-    embed = 'page'
+    embed = 'all'
     if type(dictObj).__name__ == 'str' or type(dictObj).__name__ == 'unicode':
         try:
             import ast
@@ -75,7 +75,7 @@ def setMathJaxSettings(dictObj):
     if type(dictObj).__name__ != 'dict':
         return embed
 
-    for key, value in ((key, dictObj[key]) for key in dictObj): # iterate over dictionary that is compatible with both version 2 and 3
+    for key, value in ((key, dictObj[key]) for key in dictObj): # iterate that is compatible with both version 2 and 3 of python
         if key == 'color':
             latexScript.color = value
         if key == 'embed':
@@ -105,7 +105,7 @@ def addLatex(gen, metadata):
                     metadata['latex'] = latexScript() # only emebd in an article that requests it to be there
             else:
                 metadata['latex'] = latexScript() # embed latex in every page
-    except KeyError:
+    except (KeyError, TypeError):
         metadata['latex'] = latexScript() # default functionality: embed latex in every page of the document
 
 
@@ -130,9 +130,9 @@ def wrap(content):
 
 def wrapMathInTags(instance):
     """
-        If typogrify has been set to false, but latex setting
+        If typogrify is not applicable, but latex setting
         'wrap' was set to true, then just wrap latex in
-        <mathjax>...</mathjax>. Use case would be for template writers
+        <mathjax>...</mathjax>. Use case would be for styling
     """
     if not instance._content:
         return
