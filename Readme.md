@@ -72,19 +72,19 @@ only style data (like color)
 Options is a dictionary, with the following keys:
 
  * embed: [article|all] - defaulted to all
-  ** controls where the latex is embedded. Setting embed to article
+  * controls where the latex is embedded. Setting embed to article
     means latex will be in articles that request it. An article
     is considered to request latex if there is a metadata key 
     called 'Latex'. This also applies to static pages. A value of ``all``
     will embed latex in the whole document.
  * wrap: [True|False] - defaulted to False
-  ** If set to true, then all latex is guaranteed to be wrapped 
+  * If set to true, then all latex is guaranteed to be wrapped 
     in the tags <mathjax>...</mathjax>. This could be useful for
     template design or custom styling. Note: even if wrap is set to
     false, latex will still be wrapped in <mathjax>...</mathjax> if
     using Typogrify.
  * color: [css color] - defaulted to black
-  ** The color that the latex math is rendered in.
+  * The color that the latex math is rendered in.
 
 For example, in settings.py, I could so this:
 
