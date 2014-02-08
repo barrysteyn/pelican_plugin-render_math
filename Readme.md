@@ -35,14 +35,22 @@ between the `<head>` parameters (for the NotMyIdea template, this file is base.h
     {% endif %}
 
 ### Typogrify
-This plugin enables typogrify to play nicely with Latex (i.e. typogrify can be enabled
-and Latex will be rendered correctly). In order for this to happen, version 2.02 (or above)
-of typogrify is required.
+Typogrify will now play nicely with Latex (i.e. typogrify can be enabled
+and Latex will be rendered correctly). In order for this to happen, 
+version 2.07 (or above) of typogrify is required.
 
 Usage
 -----
-Latex will be embedded in every article. If however you want latex only for
-selected articles, then in settings.py, add
+There are two ways to set the plugin:
+
+ 1. Old historical way (which still works for backward compatibility reasons)
+ 2. New way, which will give a template designer more control over the look 
+and feel of the Math
+
+### Old historical way
+By default, Latex will be embedded in every article.
+If however you want latex only for selected articles, 
+then in settings.py, add
 
     LATEX = 'article'
 
@@ -53,6 +61,39 @@ include 'Latex' as part of the metadata without any value:
     Date: 1 sep 2012
     Status: draft
     Latex:
+
+### New way
+Options can be set both in settings.py, and also as
+value in the metadata. Metadata values will override
+settings.py, but only apply on a per article basis.
+Metadata cannot override everything put in settings.py,
+only style data (like color)
+
+Options is a dictionary, with the following keys:
+
+ * embed: [article|all] - defaulted to all
+  ** controls where the latex is embedded. Setting embed to article
+    means latex will be in articles that request it. An article
+    is considered to request latex if there is a metadata key 
+    called 'Latex'. This also applies to static pages. A value of ``all``
+    will embed latex in the whole document.
+ * wrap: [True|False] - defaulted to False
+  ** If set to true, then all latex is guaranteed to be wrapped 
+    in the tags <mathjax>...</mathjax>. This could be useful for
+    template design or custom styling. Note: even if wrap is set to
+    false, latex will still be wrapped in <mathjax>...</mathjax> if
+    using Typogrify.
+ * color: [css color] - defaulted to black
+  ** The color that the latex math is rendered in.
+
+For example, in settings.py, I could so this:
+
+    LATEX = {'embed':'article','color':'blue','wrap':True}
+
+In every article, I could also embed a dictionary in the latex
+metadata
+
+    Latex: {'color':'yellow'}
 
 Latex Examples
 --------------
@@ -71,7 +112,7 @@ at the top of the paragraph. This equation number can be referenced in the docum
 To do this, use a `label` inside of the equation format and then refer to that label 
 using `ref`. For example: `begin{equation}` `\label{eq}` X^2 `\end{equation}`. Now 
 refer to that equation number by `$`\ref{eq}`$`.
-   
+ 
 Template And Article Examples
 -----------------------------
 To see an example of this plugin in action, look at 
