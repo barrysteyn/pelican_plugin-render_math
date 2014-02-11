@@ -51,113 +51,101 @@ def latexScript():
             "    } " +
             "}); ";
         (document.body || document.getElementsByTagName('head')[0]).appendChild(s);
-    </script>
-"""
+    </script>"""
 
+def inRange(t, tupleList):
+    """
+        Determines if t is within tupleList.
+        Does this in efficiently: logN
+    """
+
+    ignore = False
+    if tupleList == []:
+        return False
+
+    for index in range(2):
+        lo = 0
+        hi = len(tupleList)-1
+
+        # Find first value in array where predicate is True
+        # predicate function: tupleList[mid][0] > t[index]
+        while (lo < hi):
+            mid = lo + (hi-lo+1)/2
+            if tupleList[mid][0] > t[index]:
+                hi = mid-1
+            else:
+                lo = mid
+
+        ignore = ignore or (tupleList[lo][0] <= t[index] and tupleList[lo][1] >= t[index])
+        if (ignore):
+            return True
+
+    return ignore
 
 # Default Values
 # Note to future developers: I have given an example with color over here, but
 # it should be easy enough to add settings if needed
 latexScript.color = 'black' # Note: not set as #000 so as to aide in readbility
 
-def setMathJaxSettings(dictObj):
+def searchForLatex(content, wrapTag=None):
+    """
+        Wraps latex in user specified tags. This
+        is needed for typogrify to play nicely with latex
+        but it can also be styled by templated providers
+    """
+    ignoreList = []
+    searchForLatex.latex = False
+
+    def mathTagWrap(match):
+        ignore = inRange(match.span(), ignoreList)
+        if not searchForLatex.latex and not ignore:
+            searchForLatex.latex = True
+
+        return '<'+wrapTag+'>'+match.group(0)+'</'+wrapTag+'>' if not ignore else match.group(0)
+
+    if wrapTag: 
+        # Ignore tags that are within <code> and <pre> blocks
+        for match in searchForLatex.codepreregex.finditer(content):
+            ignoreList.append(match.span())
+
+        return (searchForLatex.regex.sub(mathTagWrap, content), searchForLatex.latex)
+
+    return True if searchForLatex.regex.search(content) else False
+
+searchForLatex.regex = re.compile(r'(\$\$|\$).*?\1|\\begin\{(.+?)\}.*?\\end\{\2\}', re.DOTALL | re.IGNORECASE)
+searchForLatex.codepreregex = re.compile(r'<pre>.*?</pre>|<code>.*?</code>', re.DOTALL | re.IGNORECASE)
+
+def processSettings(dictObj):
     """
         Set user specified MathJax settings (see README for more details)
     """
-    embed = 'all'
-    if type(dictObj).__name__ == 'str' or type(dictObj).__name__ == 'unicode':
-        try:
-            import ast
-            dictObj = ast.literal_eval(dictObj)
-        except:
-            pass
-
     if type(dictObj).__name__ != 'dict':
-        return embed
+        return
 
     for key, value in ((key, dictObj[key]) for key in dictObj): # iterate that is compatible with both version 2 and 3 of python
         if key == 'color':
             latexScript.color = value
-        if key == 'embed':
-            embed = value
+    
 
-    return embed
-
-
-def addLatex(gen, metadata):
-    """
-        The registered handler for the latex plugin. It will add 
-        the latex script to the article metadata, and set the appropriate settings
-    """
-    try:
-        # backward compatiblity: if in settings, Latex = 'article', then only embed in articles that want it
-        if type(gen.settings['LATEX']).__name__ == 'str' and gen.settings['LATEX'] == 'article':
-            if 'latex' in metadata.keys():
-                metadata['latex'] = latexScript() 
-        # see if user has specified explicit settings
-        else:
-            embed = setMathJaxSettings(gen.settings['LATEX'])
-            if 'latex' in metadata.keys():
-                setMathJaxSettings(metadata['latex']) # settings in metadata can override global settings
-
-            if embed == 'article':
-                if 'latex' in metadata.keys():
-                    metadata['latex'] = latexScript() # only emebd in an article that requests it to be there
-            else:
-                metadata['latex'] = latexScript() # embed latex in every page
-    except (KeyError, TypeError):
-        metadata['latex'] = latexScript() # default functionality: embed latex in every page of the document
-
-
-def wrap(content):
-    """
-        Wraps latex in <mathjax>...</mathjax> tags. This
-        is needed for typogrify to play nicely with latex
-        but it can also be styled by templated providers
-    """
-
-    try:
-        wrap.latexRe
-    except AttributeError:
-        # Store regex variable as a function variable so we don't have to recompile all the time
-        wrap.latexRe = re.compile(r'(\$\$|\$).*?\1|\\begin\{(.+?)\}.*?\\end\{\2\}', re.DOTALL | re.IGNORECASE)
-
-    def mathTagWrap(match):
-        return '<mathjax>'+match.group(0)+'</mathjax>'
-
-    return wrap.latexRe.subn(mathTagWrap, content) 
-
-
-def wrapMathInTags(instance):
-    """
-        If typogrify is not applicable, but latex setting
-        'wrap' was set to true, then just wrap latex in
-        <mathjax>...</mathjax>. Use case would be for styling
-    """
+def processContent(instance):
     if not instance._content:
         return
 
-    instance._content = wrap(instance._content)[0]
+    if processContent.wrapTag:
+        instance._content, latex = searchForLatex(instance._content, processContent.wrapTag)
+    else:
+        latex = searchForLatex(instance._content)
 
+    if processContent.typogrify:
+        from typogrify.filters import typogrify
+        ignoreTags = [processContent.wrapTag] if processContent.wrapTag else None
 
-def applyTypogrify(instance):
-    """
-        Will wrap <mathjax> tags around latex if typogrify option
-        has been enabled, and then apply typogrfiy filters
-        with a setting to ignore <mathjax> tags (need version 
-        2.07 of typogrify or above for this)
-    """
+        instance._content = typogrify(instance._content, ignoreTags)
+        instance.metadata['title'] = typogrify(instance.metadata['title'], ignoreTags)
 
-    if not instance._content:
-        return
-
-    instance._content, numSubs = wrap(instance._content)
-    ignoreTags = ['mathjax'] if numSubs > 0 else None
-
-    from typogrify.filters import typogrify
-    instance._content = typogrify(instance._content, ignoreTags)
-    instance.metadata['title'] = typogrify(instance.metadata['title'])
-
+    if latex:
+        instance.metadata['latex'] = latexScript()
+        instance._content += latexScript() # mathjax script added to the end of article
 
 def pelicanInit(pelicanObj):
     """
@@ -167,18 +155,27 @@ def pelicanInit(pelicanObj):
         typogrfiy without disturbing latex
     """
 
-    try: # If typogrify set to True, then we need to handle it manually so it does not conflict with Latex
+    try:
+        processSettings(pelicanObj.settings['LATEX'])
+    except:
+        pass
+
+    processContent.typogrify = False
+    processContent.wrapTag = None
+
+    # If typogrify set to True, then we need to handle 
+    # it manually so it does not conflict with Latex
+    try: 
         if pelicanObj.settings['TYPOGRIFY'] == True:
             pelicanObj.settings['TYPOGRIFY'] = False
-            signals.content_object_init.connect(applyTypogrify)
-
-            return
+            processContent.wrapTag = 'mathjax'
+            processContent.typogrify = True
     except KeyError:
         pass
 
-    try: # If typogrify is set to false or is not present, then see if latex should be wrapped in tags
-        if pelicanObj.settings['LATEX']['wrap'] == True:
-            signals.content_object_init.connect(wrapMathInTags)
+    try: # See if latex should be wrapped in tags
+        if pelicanObj.settings['LATEX']['wrap']:
+            processContent.wrapTag = pelicanObj.settings['LATEX']['wrap']
     except (KeyError, TypeError):
         pass
 
@@ -188,5 +185,4 @@ def register():
         Plugin registration
     """
     signals.initialized.connect(pelicanInit) 
-    signals.article_generator_context.connect(addLatex)
-    signals.page_generator_context.connect(addLatex)
+    signals.content_object_init.connect(processContent)
