@@ -28,185 +28,178 @@ from pelican import contents
 import re
 
 # Global Variables
-__WRAP_TAG__ = None #  the tag to wrap mathjax in (needed to play nicely with typogrify or for template designers)
-__LATEX_REGEX__ = re.compile(r'(\$\$|\$|\\begin\{(.+?)\}).*?\1|\\end\{\2\}', re.DOTALL | re.IGNORECASE) #  used to detect latex
-
-def mathjaxscript():
-    # Reference about dynamic loading of MathJax can be found at http://docs.mathjax.org/en/latest/dynamic.html
-    # The https cdn address can be found at http://www.mathjax.org/resources/faqs/#problem-https
-
-    # Note: The script will be processed by the browser once, no matter how
-    # many times it is declared because it checks for the existence of an id
-    # before processing
-
-    return """
+_WRAP_TAG = None  # the tag to wrap mathjax in (needed to play nicely with typogrify or for template designers)
+_LATEX_REGEX = re.compile(r'(\$\$|\$|\\begin\{(.+?)\}).*?\1|\\end\{\2\}', re.DOTALL | re.IGNORECASE) #  used to detect latex
+_LATEX_SUMMARY_REGEX = None  # used to match latex in summary
+_LATEX_PARTIAL_REGEX = None  # used to match latex that has been cut off in summary
+_MATHJAX_SETTINGS = {}  # Settings that can be specified by the user, used to control mathjax script settings
+_MATHJAX_SCRIPT="""
 <script type= "text/javascript">
-    if (!document.getElementById('mathjaxscript_pelican')) {
+    if (!document.getElementById('mathjaxscript_pelican')) {{
         var s = document.createElement('script');
         s.id = 'mathjaxscript_pelican';
         s.type = 'text/javascript'; s.src = 'https:' == document.location.protocol ? 'https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js' : 'http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
         s[(window.opera ? "innerHTML" : "text")] =
-            "MathJax.Hub.Config({" +
+            "MathJax.Hub.Config({{" +
             "    config: ['MMLorHTML.js']," +
-            "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+            "    TeX: {{ extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: {{ autoNumber: 'AMS' }} }}," +
             "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
             "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
-            "    displayAlign: '"""+mathjaxscript.displayalign+"""'," +
-            "    displayIndent: '"""+mathjaxscript.displayindent+"""'," +
-            "    showMathMenu: """+mathjaxscript.showmathmenu+"""," +
-            "    tex2jax: { " +
+            "    displayAlign: '{align}'," +
+            "    displayIndent: '{indent}'," +
+            "    showMathMenu: {show_menu}," +
+            "    tex2jax: {{ " +
             "        inlineMath: [ [\'$\',\'$\'] ], " +
             "        displayMath: [ [\'$$\',\'$$\'] ]," +
-            "        processEscapes: """+mathjaxscript.processescapes+"""," +
-            "        preview: '"""+mathjaxscript.preview+"""'," +
-            "    }, " +
-            "    'HTML-CSS': { " +
-            "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: '""" +mathjaxscript.color+ """ ! important'}} " +
-            "    } " +
-            "}); ";
+            "        processEscapes: {process_escapes}," +
+            "        preview: '{preview}'," +
+            "    }}, " +
+            "    'HTML-CSS': {{ " +
+            "        styles: {{ '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {{color: '{color} ! important'}} }}" +
+            "    }} " +
+            "}}); ";
         (document.body || document.getElementsByTagName('head')[0]).appendChild(s);
-    }
+    }}
 </script>
 """
 
 
-# Python standard library for binary search, namely bisect
-# is cool but I need specific business logic to evaluate
-# my search predicate, so I am using my own version
-def binarysearch(matchtuple, ignorelist):
-    """
-        Determines if t is within tupleList. Using
-        the fact that tupleList is ordered, binary
-        search can be performed which is O(logn)
+# Python standard library for binary search, namely bisect is cool but I need
+# specific business logic to evaluate my search predicate, so I am using my
+# own version
+def binary_search(match_tuple, ignore_within):
+    """Determines if t is within tupleList. Using the fact that tupleList is
+    ordered, binary search can be performed which is O(logn)
     """
 
     ignore = False
-    if ignorelist == []:
+    if ignore_within == []:
         return False
 
     lo = 0
-    hi = len(ignorelist)-1
+    hi = len(ignore_within)-1
 
     # Find first value in array where predicate is False
     # predicate function: tupleList[mid][0] < t[index]
     while lo < hi:
         mid = lo + (hi-lo+1)/2
-        if ignorelist[mid][0] < matchtuple[0]:
+        if ignore_within[mid][0] < match_tuple[0]:
             lo = mid
         else:
             hi = mid-1
 
-    if lo >= 0 and lo <= len(ignorelist)-1:
-        ignore = (ignorelist[lo][0] <= matchtuple[0] and ignorelist[lo][1] >= matchtuple[1])
+    if lo >= 0 and lo <= len(ignore_within)-1:
+        ignore = (ignore_within[lo][0] <= match_tuple[0] and ignore_within[lo][1] >= match_tuple[1])
 
     return ignore
 
 
-def ignorecontent(content):
+def ignore_content(content):
+    """Creates a list of match span tuples for which content should be ignored
+    e.g. <pre> and <code> tags
     """
-        Creates a list of match span tuples
-        for which content should be ignored
-        e.g. <pre> and <code> tags
+    ignore_within = []
+
+    # used to detect all <pre> and <code> tags. NOTE: Alter this regex should
+    # additional tags need to be ignored
+    ignore_regex = re.compile(r'<(pre|code).*?>.*?</(\1)>', re.DOTALL | re.IGNORECASE)
+
+    for match in ignore_regex.finditer(content):
+        ignore_within.append(match.span())
+
+    return ignore_within
+
+
+def wrap_latex(content, ignore_within):
+    """Wraps latex in user specified tags.
+
+    This is needed for typogrify to play nicely with latex but it can also be
+    styled by template providers
     """
-    ignorelist = []
+    wrap_latex.foundlatex = False
 
-    # used to detect all <pre> and <code> tags
-    ignoreregex = re.compile(r'<(pre|code).*?>.*?</(\1)>', re.DOTALL | re.IGNORECASE)
-
-    # Ignore tags that are within <code> and <pre> blocks
-    for match in ignoreregex.finditer(content):
-        ignorelist.append(match.span())
-
-    return ignorelist
-
-
-def wraplatex(content, ignorelist):
-    """
-        Wraps latex in user specified tags. This is needed for typogrify to
-        play nicely with latex but it can also be styled by templated providers
-    """
-    wraplatex.foundlatex = False
-
-    def mathtagwrap(match):
+    def math_tag_wrap(match):
         """function for use in re.sub"""
+
         # determine if the tags are within <pre> and <code> blocks
-        ignore = binarysearch(match.span(1), ignorelist) and binarysearch(match.span(2), ignorelist)
+        ignore = binary_search(match.span(1), ignore_within) and binary_search(match.span(2), ignore_within)
 
         if ignore:
             return match.group(0)
         else:
-            wraplatex.foundlatex = True
-            return '<%s>%s</%s>' % (__WRAP_TAG__, match.group(0), __WRAP_TAG__)
+            wrap_latex.foundlatex = True
+            return '<%s>%s</%s>' % (_WRAP_TAG, match.group(0), _WRAP_TAG)
 
-    return (__LATEX_REGEX__.sub(mathtagwrap, content), wraplatex.foundlatex)
+    return (_LATEX_REGEX.sub(math_tag_wrap, content), wrap_latex.foundlatex)
 
 
-def processsummary(instance, ignorelist):
+def process_summary(instance, ignore_within):
+    """Summaries need special care. If Latex is cut off, it must be restored.
+
+    In addition, the mathjax script must be included if necessary thereby
+    making it independent to the template
     """
-        Summaries need special care. If Latex is cut off, it must be restored.
-        Also, the mathjax script must be included if necessary
-    """
 
-    processsummary.alteredsummary = False
-    insertmathjaxscript = False
-    endtag = '</%s>' % __WRAP_TAG__ if __WRAP_TAG__ != None else ''
+    process_summary.altered_summary = False
+    insert_mathjax_script = False
+    endtag = '</%s>' % _WRAP_TAG if _WRAP_TAG != None else ''
 
     # use content's _get_summary method to obtain summary
     summary = instance._get_summary()
 
     # Determine if there is any math in the summary which are not within the
-    # ignorelist tags
+    # ignore_within tags
     mathitem = None
-    for mathitem in processsummary.latexregex.finditer(summary):
-        if binarysearch(mathitem.span(), ignorelist):
+    for mathitem in _LATEX_SUMMARY_REGEX.finditer(summary):
+        if binary_search(mathitem.span(), ignore_within):
             mathitem = None # In <code> or <pre> tags, so ignore
         else:
-            insertmathjaxscript = True
+            insert_mathjax_script = True
 
     # Repair the latex if it was cut off mathitem will be the final latex
     # code  matched that is not within <pre> or <code> tags
     if mathitem and mathitem.group(4) == ' ...':
         end = r'\end{%s}' % mathitem.group(3) if mathitem.group(3) is not None else mathitem.group(2)
-        latexmatch = re.search('%s.*?%s' % (re.escape(mathitem.group(1)), re.escape(end)), instance._content, re.DOTALL | re.IGNORECASE)
-        newsummary = summary.replace(mathitem.group(0), latexmatch.group(0)+'%s ...' % endtag)
+        latex_match = re.search('%s.*?%s' % (re.escape(mathitem.group(1)), re.escape(end)), instance._content, re.DOTALL | re.IGNORECASE)
+        new_summary = summary.replace(mathitem.group(0), latex_match.group(0)+'%s ...' % endtag)
 
-        if newsummary != summary:
-            return newsummary+mathjaxscript()
+        if new_summary != summary:
+            return new_summary+_MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS)
 
-    def partialregex(match):
+    def partial_regex(match):
         """function for use in re.sub"""
-        if binarysearch(match.span(), ignorelist):
+        if binary_search(match.span(), ignore_within):
             return match.group(0)
 
-        processsummary.alteredsummary = True
+        process_summary.altered_summary = True
         return match.group(1) + match.group(4)
 
     # check for partial latex tags at end. These must be removed
-    summary = processsummary.latexpartialregex.sub(partialregex, summary)
+    summary = _LATEX_PARTIAL_REGEX.sub(partial_regex, summary)
 
-    if processsummary.alteredsummary:
-        return summary+mathjaxscript() if insertmathjaxscript else summary
+    if process_summary.altered_summary:
+        return summary+_MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS) if insert_mathjax_script else summary
 
-    return summary+mathjaxscript() if insertmathjaxscript else None
+    return summary+_MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS) if insert_mathjax_script else None
 
 
-def processsettings(settings):
-    """
-        Set user specified MathJax settings (see README for more details)
-    """
+def process_settings(settings):
+    """Sets user specified MathJax settings (see README for more details)"""
+
+    global _MATHJAX_SETTINGS
 
     # NOTE TO FUTURE DEVELOPERS: Look at the README and what is happening in
     # this function if any additional changes to the mathjax settings need to
     # be incorporated. Also, please inline comment what the variables
     # will be used for
 
-    # Global Variables Used To Set The Mathjax Script
-    mathjaxscript.displayalign = 'center'  # controls alignment of of displayed equations (values can be: left, right, center)
-    mathjaxscript.displayindent = '0em'  # if above is not set to 'center', then this setting acts as an indent
-    mathjaxscript.showmathmenu = 'true'  # controls whether to attach mathjax contextual menu
-    mathjaxscript.processescapes = 'true'  # controls whether escapes are processed
-    mathjaxscript.preview = 'TeX'  # controls what user sees as preview
-    mathjaxscript.color = 'black'  # controls color math is rendered in
+    # Default settings
+    _MATHJAX_SETTINGS['align'] = 'center'  # controls alignment of of displayed equations (values can be: left, right, center)
+    _MATHJAX_SETTINGS['indent'] = '0em'  # if above is not set to 'center', then this setting acts as an indent
+    _MATHJAX_SETTINGS['show_menu'] = 'true'  # controls whether to attach mathjax contextual menu
+    _MATHJAX_SETTINGS['process_escapes'] = 'true'  # controls whether escapes are processed
+    _MATHJAX_SETTINGS['preview'] = 'TeX'  # controls what user sees as preview
+    _MATHJAX_SETTINGS['color'] = 'black'  # controls color math is rendered in
 
     if not isinstance(settings, dict):
         return
@@ -216,121 +209,119 @@ def processsettings(settings):
     # and 3 of python
     for key, value in ((key, settings[key]) for key in settings):
         if key == 'align' and isinstance(value, str):
-            if value == 'left':
-                 mathjaxscript.displayalign = 'left'
-            elif value == 'right':
-                 mathjaxscript.displayalign = 'right'
+            if value == 'left' or value == 'right' or value == 'center':
+                _MATHJAX_SETTINGS[key] = value
             else:
-                 mathjaxscript.displayalign = 'center'
+                _MATHJAX_SETTINGS[key] = 'center'
 
         if key == 'indent':
-            mathjaxscript.displayindent = value
+            _MATHJAX_SETTINGS[key] = value
 
         if key == 'show_menu' and isinstance(value, bool):
-            mathjaxscript.showmathmenu = 'true' if value else 'false'
+            _MATHJAX_SETTINGS[key] = 'true' if value else 'false'
 
         if key == 'process_escapes' and isinstance(value, bool):
-            mathjaxscript.processescapes = 'true' if value else 'false'
+            _MATHJAX_SETTINGS[key] = 'true' if value else 'false'
 
         if key == 'preview' and isinstance(value, str):
-            mathjaxscript.preview = value
+            _MATHJAX_SETTINGS[key] = value
 
         if key == 'color' and isinstance(value, str):
-            mathjaxscript.color = value
+            _MATHJAX_SETTINGS[key] = value
 
 
+def process_content(instance):
+    """Processes content, with logic to ensure that typogrify does not clash
+    with latex.
 
-def processcontent(instance):
-    """
-        Processes content, with logic to ensure that typogrify does not clash
-        with latex. Also, mathjax script is inserted at the end of the content thereby
-        making it independent of the template
+    In addition, mathjax script is inserted at the end of the content thereby
+    making it independent of the template
     """
 
     if not instance._content:
         return
 
-    ignorelist = ignorecontent(instance._content)
+    ignore_within = ignore_content(instance._content)
 
-    if __WRAP_TAG__:
-        instance._content, latex = wraplatex(instance._content, ignorelist)
+    if _WRAP_TAG:
+        instance._content, latex = wrap_latex(instance._content, ignore_within)
     else:
-        latex = True if __LATEX_REGEX__.search(instance._content) else False
+        latex = True if _LATEX_REGEX.search(instance._content) else False
 
     # The user initially set typogrify to be True, but since it would clash
     # with latex, we set it to False. This means that the default reader will
     # not call typogrify, so it is called here, where we are able to control
     # logic for it ignore latex if necessary
-    if processcontent.typogrify:
+    if process_content.typogrify:
         # Tell typogrify to ignore the tags that latex has been wrapped in
-        ignoretags = [__WRAP_TAG__] if __WRAP_TAG__ else None
+        ignore_tags = [_WRAP_TAG] if _WRAP_TAG else None
 
         # Exact copy of the logic as found in the default reader
         from typogrify.filters import typogrify
-        instance._content = typogrify(instance._content, ignoretags)
-        instance.metadata['title'] = typogrify(instance.metadata['title'], ignoretags)
+        instance._content = typogrify(instance._content, ignore_tags)
+        instance.metadata['title'] = typogrify(instance.metadata['title'], ignore_tags)
 
     if latex:
         # Mathjax script added to the end of article. Now it does not need to
         # be explicitly added to the template
-        instance._content += mathjaxscript()
+        instance._content += _MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS)
 
         # The summary needs special care because latex math cannot just be cut
         # off
-        summary = processsummary(instance, ignorelist)
+        summary = process_summary(instance, ignore_within)
         if summary != None:
             instance._summary = summary
 
 
-def pelicaninit(pelicanobj):
-    """
-        Intialializes certain global variables and sets typogogrify setting to
-        False should it be set to True.
+def pelican_init(pelicanobj):
+    """Intialializes certain global variables and sets typogogrify setting to
+    False should it be set to True.
     """
 
-    global __WRAP_TAG__
+    global _WRAP_TAG
+    global _LATEX_SUMMARY_REGEX
+    global _LATEX_PARTIAL_REGEX
 
     try:
         settings = pelicanobj.settings['LATEX']
     except:
         settings = None
 
-    processsettings(settings)
+    process_settings(settings)
 
     # Allows mathjax script to be accessed from template should it be needed
-    pelicanobj.settings['MATHJAXSCRIPT'] = mathjaxscript()
+    pelicanobj.settings['MATHJAXSCRIPT'] = _MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS)
 
     # If typogrify set to True, then we need to handle it manually so it does
     # not conflict with Latex
     try:
         if pelicanobj.settings['TYPOGRIFY'] == True:
             pelicanobj.settings['TYPOGRIFY'] = False
-            __WRAP_TAG__ = 'mathjax' # default to wrap mathjax content inside of
-            processcontent.typogrify = True
+            _WRAP_TAG = 'mathjax' # default to wrap mathjax content inside of
+            process_content.typogrify = True
     except KeyError:
         pass
 
-    # Set __WRAP_TAG__ to the settings tag if defined. The idea behind this is
+    # Set _WRAP_TAG to the settings tag if defined. The idea behind this is
     # to give template designers control over how math would be rendered
     try:
         if pelicanobj.settings['LATEX']['wrap']:
-            __WRAP_TAG__ = pelicanobj.settings['LATEX']['wrap']
+            _WRAP_TAG = pelicanobj.settings['LATEX']['wrap']
     except (KeyError, TypeError):
         pass
 
-    # regular expressions that depend on __WRAP_TAG__ are set here
-    tagstart = r'<%s>' % __WRAP_TAG__ if not __WRAP_TAG__ is None else ''
-    tagend = r'</%s>' % __WRAP_TAG__ if not __WRAP_TAG__ is None else ''
-    latexsummaryregex = r'((\$\$|\$|\\begin\{(.+?)\}).+?)(\2|\\end\{\3\}|\s?\.\.\.)(%s)?' % tagend
-    latexpartialregex = r'(.*)(%s)(\\.*?|\$.*?)(\s?\.\.\.)(%s)' % (tagstart, tagend)
+    # regular expressions that depend on _WRAP_TAG are set here
+    tagstart = r'<%s>' % _WRAP_TAG if not _WRAP_TAG is None else ''
+    tagend = r'</%s>' % _WRAP_TAG if not _WRAP_TAG is None else ''
+    latex_summary_regex = r'((\$\$|\$|\\begin\{(.+?)\}).+?)(\2|\\end\{\3\}|\s?\.\.\.)(%s)?' % tagend
+    latex_partial_regex = r'(.*)(%s)(\\.*?|\$.*?)(\s?\.\.\.)(%s)' % (tagstart, tagend)
 
-    processsummary.latexregex = re.compile(latexsummaryregex, re.DOTALL | re.IGNORECASE)
-    processsummary.latexpartialregex = re.compile(latexpartialregex, re.DOTALL | re.IGNORECASE)
+    _LATEX_SUMMARY_REGEX = re.compile(latex_summary_regex, re.DOTALL | re.IGNORECASE)
+    _LATEX_PARTIAL_REGEX = re.compile(latex_partial_regex, re.DOTALL | re.IGNORECASE)
 
 
 def register():
-    """
-        Plugin registration
-    """
-    signals.initialized.connect(pelicaninit)
-    signals.content_object_init.connect(processcontent)
+    """Plugin registration"""
+
+    signals.initialized.connect(pelican_init)
+    signals.content_object_init.connect(process_content)
