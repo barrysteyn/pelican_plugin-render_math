@@ -6,7 +6,9 @@ Latex Plugin For Pelican
 This plugin allows you to write mathematical equations in your articles using Latex.
 It uses the MathJax Latex JavaScript library to render latex that is embedded in
 between `$..$` for inline math and `$$..$$` for displayed math. It also allows for
-writing equations in by using `\begin{equation}`...`\end{equation}`.
+writing equations in by using `\begin{equation}`...`\end{equation}`. No
+alteration to a template is required for this plugin to work, just install and
+use.
 
 Typogrify Compatibility
 -----------------------
@@ -15,8 +17,8 @@ typogrify version 2.07 or above.
 
 User Settings
 -------------
-Users are also able to pass a dictionary of settings, either in the settings file, or
-in the metadata (which will overload the settings file). This could be very useful
+Users are also able to pass a dictionary of settings in the settings file which
+will control how the mathjax library renders thing. This could be very useful
 for template builders that want to adjust look and feel of the math.
 See README for more details.
 """
@@ -193,10 +195,6 @@ def processsettings(settings):
         Set user specified MathJax settings (see README for more details)
     """
 
-    if not isinstance(settings, dict):
-        return
-
-    # The following mathjax settings can be set via the settings dictionary
     # NOTE TO FUTURE DEVELOPERS: Look at the README and what is happening in
     # this function if any additional changes to the mathjax settings need to
     # be incorporated. Also, please inline comment what the variables
@@ -210,6 +208,10 @@ def processsettings(settings):
     mathjaxscript.preview = 'TeX'  # controls what user sees as preview
     mathjaxscript.color = 'black'  # controls color math is rendered in
 
+    if not isinstance(settings, dict):
+        return
+
+    # The following mathjax settings can be set via the settings dictionary
     # Iterate over dictionary in a way that is compatible with both version 2
     # and 3 of python
     for key, value in ((key, settings[key]) for key in settings):
@@ -289,9 +291,11 @@ def pelicaninit(pelicanobj):
     global __WRAP_TAG__
 
     try:
-        processsettings(pelicanobj.settings['LATEX'])
+        settings = pelicanobj.settings['LATEX']
     except:
-        pass
+        settings = None
+
+    processsettings(settings)
 
     # Allows mathjax script to be accessed from template should it be needed
     pelicanobj.settings['MATHJAXSCRIPT'] = mathjaxscript()
