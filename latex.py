@@ -30,7 +30,7 @@ import re
 # Global Variables
 _TYPOGRIFY = False  # used to determine if we should process typogrify
 _WRAP_TAG = None  # the tag to wrap mathjax in (needed to play nicely with typogrify or for template designers)
-_LATEX_REGEX = re.compile(r'(\$\$|\$|\\begin\{(.+?)\}|<(math).*?>).*?(\1|\\end\{\2\}|</\3>)', re.DOTALL | re.IGNORECASE) #  used to detect latex
+_LATEX_REGEX = re.compile(r'(\$\$|\$|\\begin\{(.+?)\}|<(math)(?:\s.*?)?>).*?(\1|\\end\{\2\}|</\3>)', re.DOTALL | re.IGNORECASE) #  used to detect latex
 _LATEX_SUMMARY_REGEX = None  # used to match latex in summary
 _LATEX_PARTIAL_REGEX = None  # used to match latex that has been cut off in summary
 _MATHJAX_SETTINGS = {}  # settings that can be specified by the user, used to control mathjax script settings
@@ -39,7 +39,8 @@ _MATHJAX_SCRIPT="""
     if (!document.getElementById('mathjaxscript_pelican')) {{
         var s = document.createElement('script');
         s.id = 'mathjaxscript_pelican';
-        s.type = 'text/javascript'; s.src = 'https:' == document.location.protocol ? 'https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js' : 'http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+        s.type = 'text/javascript'; 
+        s.src = 'https:' == document.location.protocol ? 'https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js' : 'http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
         s[(window.opera ? "innerHTML" : "text")] =
             "MathJax.Hub.Config({{" +
             "    config: ['MMLorHTML.js']," +
@@ -103,7 +104,7 @@ def ignore_content(content):
 
     # used to detect all <pre> and <code> tags. NOTE: Alter this regex should
     # additional tags need to be ignored
-    ignore_regex = re.compile(r'<(pre|code).*?>.*?</(\1)>', re.DOTALL | re.IGNORECASE)
+    ignore_regex = re.compile(r'<(pre|code)(?:\s.*?)?>.*?</(\1)>', re.DOTALL | re.IGNORECASE)
 
     for match in ignore_regex.finditer(content):
         ignore_within.append(match.span())
@@ -119,11 +120,12 @@ def wrap_latex(content, ignore_within):
     """
     wrap_latex.foundlatex = False
 
+
     def math_tag_wrap(match):
         """function for use in re.sub"""
 
         # determine if the tags are within <pre> and <code> blocks
-        ignore = binary_search(match.span(1), ignore_within) and binary_search(match.span(2), ignore_within)
+        ignore = binary_search(match.span(1), ignore_within) or binary_search(match.span(4), ignore_within)
 
         if ignore or match.group(3) == 'math':
             if match.group(3) == 'math':
@@ -154,28 +156,34 @@ def process_summary(instance, ignore_within):
 
     # Determine if there is any math in the summary which are not within the
     # ignore_within tags
-    mathitem = None
-    for mathitem in _LATEX_SUMMARY_REGEX.finditer(summary):
-        if binary_search(mathitem.span(), ignore_within):
-            mathitem = None # In <code> or <pre> tags, so ignore
+    math_item = None
+    for math_item in _LATEX_SUMMARY_REGEX.finditer(summary):
+        ignore = binary_search(math_item.span(2), ignore_within)
+        if '...' not in math_item.group(5):
+            ignore = ignore or binary_search(math_item.span(5), ignore_within)
+        else:
+            ignore = ignore or binary_search(math_item.span(6), ignore_within)
+
+        if ignore:
+            math_item = None # In <code> or <pre> tags, so ignore
         else:
             insert_mathjax_script = True
 
-    # Repair the latex if it was cut off mathitem will be the final latex
+    # Repair the latex if it was cut off math_item will be the final latex
     # code  matched that is not within <pre> or <code> tags
-    if mathitem and '...' in mathitem.group(6):
-        if mathitem.group(3) is not None:
-            end = r'\end{%s}' % mathitem.group(3)
-        elif mathitem.group(4) is not None:
+    if math_item and '...' in math_item.group(5):
+        if math_item.group(3) is not None:
+            end = r'\end{%s}' % math_item.group(3)
+        elif math_item.group(4) is not None:
             end = r'</math>'
-        elif mathitem.group(2) is not None:
-            end = mathitem.group(2)
+        elif math_item.group(2) is not None:
+            end = math_item.group(2)
 
-        search_regex = r'%s(%s.*?%s)' % (re.escape(instance._content[0:mathitem.start(1)]), re.escape(mathitem.group(1)), re.escape(end))
+        search_regex = r'%s(%s.*?%s)' % (re.escape(instance._content[0:math_item.start(1)]), re.escape(math_item.group(1)), re.escape(end))
         latex_match = re.search(search_regex, instance._content, re.DOTALL | re.IGNORECASE)
 
         if latex_match:
-            new_summary = summary.replace(mathitem.group(0), latex_match.group(1)+'%s ...' % end_tag)
+            new_summary = summary.replace(math_item.group(0), latex_match.group(1)+'%s ...' % end_tag)
 
             if new_summary != summary:
                 return new_summary+_MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS)
@@ -330,7 +338,7 @@ def pelican_init(pelicanobj):
     # regular expressions that depend on _WRAP_TAG are set here
     tag_start= r'<%s>' % _WRAP_TAG if not _WRAP_TAG is None else ''
     tag_end = r'</%s>' % _WRAP_TAG if not _WRAP_TAG is None else ''
-    latex_summary_regex = r'((\$\$|\$|\\begin\{(.+?)\}|<(math)(\s.*?)?>).+?)(\2|\\end\{\3\}|</\4>|\s?\.\.\.)(%s|</\4>)?' % tag_end
+    latex_summary_regex = r'((\$\$|\$|\\begin\{(.+?)\}|<(math)(?:\s.*?)?>).+?)(\2|\\end\{\3\}|</\4>|\s?\.\.\.)(%s|</\4>)?' % tag_end
 
     # NOTE: The logic in _get_summary will handle <math> correctly because it
     # is perceived as an html tag. Therefore we are only interested in handling non mml
