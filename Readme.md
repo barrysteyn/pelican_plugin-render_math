@@ -1,44 +1,44 @@
-Latex Plugin For Pelican
-========================
+Math Render Plugin For Pelican
+==============================
+This plugin gives pelican the ability to render mathematics. It accomplishes
+this by using the [MathJax](http://www.mathjax.org/) javascript engine. Both
+[LaTex](http://en.wikipedia.org/wiki/LaTeX) and [MathML](http://en.wikipedia.org/wiki/MathML) 
+can be rendered within the content.
 
-This plugin allows you to write mathematical equations in your articles using Latex and MathMl.
-It uses the MathJax Latex JavaScript library to render *Latex* and *MathMl* that is embedded in
-your site.
+The plugin also ensures that pelican and recognized math "play" nicely together, by
+ensuring [Typogrify](https://github.com/mintchaos/typogrify) does not alter math content
+and summaries that get cut off are repaired.
 
-### Latex
-Anything between `$..$` (inline math) and `$$..$$` (displayed math) will be recognized as
-Latex. In addition, anything between between `\begin` and `\end` macros will also be 
-recognized as Latex. For example, `\begin{equation}`...`\end{equation}` would be used to 
+Recognized math in the context of this plugin is either LaTex or MathML as described below.
+
+### LaTex
+Anything between `$`...`$` (inline math) and `$$`..`$$` (displayed math) will be recognized as
+LaTex. In addition, anything the `\begin` and `\end` LaTex macros will also be 
+recognized as LaTex. For example, `\begin{equation}`...`\end{equation}` would be used to 
 render math equations with numbering.
 
-Within recognized Latex as described above, Latex macros can be used.
+Within recognized LaTex as described above, any supported LaTex macro can be used.
 
-### MathMl
-Anything between `<math>` and `</math>` tags will be recognized as *MathMl*.
+### MathML
+Anything between `<math>` and `</math>` tags will be recognized as MathML
 
 Installation
 ------------
-To enable, ensure that `latex.py` is put somewhere that is accessible.
-Then use as follows by adding the following to your settings.py:
+To enable, ensure that `render_math` plugin is accessible.
+Then add the following to settings.py:
 
-    PLUGINS = ["latex"]
+    PLUGINS = ["render_math"]
 
 Your site is now capable of rendering math math using the mathjax JavaScript
-library. No alterations to the template file is needed.
+engine. No alterations to the template is needed, just use and enjoy!
 
 ### Typogrify
-Typogrify will now play nicely with Latex (i.e. typogrify can be enabled
-and Latex will be rendered correctly). In order for this to happen,
-version 2.07 (or above) of typogrify is required. In fact, this plugin expects
-that at least version 2.07 is present and will fail without it.
+In the past, using [Typgogrify](https://github.com/mintchaos/typogrify) would alter the math contents resulting
+in math that could not be rendered by MathJax. The only option was to ensure
+that Typogrify was disabled in the settings.
 
-### Summaries
-Summaries that contain math are processed to ensure that math is not off. If
-math is cut off, it will add it back into the summary.
-
-### Templates
-No alteration is needed to a template for this plugin to work. Just install
-the plugin and start writing your Math.
+The problem has been recitified in this plugin, but it requires [Typogrify version 2.04](https://pypi.python.org/pypi/typogrify)
+(or higher). In fact, this plugin will not work with lower versions of Typogrfrify.
 
 Usage
 -----
@@ -48,48 +48,119 @@ will render previous setups correctly. This is because those
 settings and metadata information is ignored by this version. Therefore
 you can remove them to neaten up your site
 
-### Settings File
-Extra options regarding how mathjax renders math can be set in the settings
-file. These options are in a dictionary variable called `LATEX` in the pelican
+### Templates
+No alteration is needed to a template for this plugin to work. Just install
+the plugin and start writing your Math. 
+
+If on the other hand, you are template designer and want total control
+over the MathJax JavaScript, you can set the `auto_insert` setting to 
+`False` which will cause no MathJax JavaScript to be added to the content.
+
+If you choose this option, you should really know what you are doing. Therefore
+only do this if you are designing your template. There is no real advantage to
+to letting template logic handle the insertion of the MathJax JavaScript other
+than it being slightly neater.
+
+By setting `auto_insert` to `False`, metadata with `key` value of `mathjax`
+will be present in all pages and articles where MathJax should be present.
+The template designer can detect this and then use the `MATHJAXSCRIPT` setting
+which will contain the user specified MathJax script to insert into the content.
+
+For example, this code could be used:
+```
+{% if not MATH['auto_insert'] %}
+    {% if page and page.mathjax or article and article.mathjax %}
+        {{ MATHJAXSCRIPT }}
+    {% endif %}
+{% endif %}
+```
+
+### Settings
+Certain MathJax rendering options can be set. These options 
+are in a dictionary variable called `MATH` in the pelican
 settings file.
 
 The dictionary can be set with the following keys:
 
- * `wrap`: controls the tags that math is wrapped with inside the resulting
-html. For example, setting `wrap` to `'mathjax'` would wrap all math inside
+ * `auto_insert`: controls whether plugin should automatically insert
+MathJax JavaScript in content that has Math. It is only recommended
+to set this to False if you are a template designer and you want
+extra control over where the MathJax JavaScript is renderd. **Default Value**:
+True
+ * `wrap_latex`: controls the tags that LaTex math is wrapped with inside the resulting
+html. For example, setting `wrap_latex` to `mathjax` would wrap all LaTex math inside
 `<mathjax>...</mathjax>` tags. If typogrify is set to True, then math needs
-to be wrapped in tags and `wrap` will therefore default to `mathjax` if not
-set. `wrap` cannot be set to `'math'` because this tag is reserved for 
-mathml notation
+to be wrapped in tags and `wrap_latex` will therefore default to `mathjax` if not
+set. `wrap_latex` cannot be set to `'math'` because this tag is reserved for 
+mathml notation. **Default Value**: None unless Typogrify is enabled in which case, 
+it defaults to `mathjax`
  * `align`: controls how displayed math will be aligned. Can be set to either
-`left`, `right` or `center` (default is `center`).
+`left`, `right` or `center`. **Default Value**: `center`.
  * `indent`: if `align` not set to `center`, then this controls the indent
-level (default is `0em`).
- * `show_menu`: controls whether the mathjax contextual menu is shown.
- * `process_escapes`: controls whether mathjax processes escape sequences.
- * `preview`: controls the preview message users are seen while mathjax is
-loading.
- * `color`: controls the color of the mathjax rendered font.
+level. **Default Value**: `0em`.
+ * `show_menu`: a boolean value that controls whether the mathjax contextual 
+menu is shown. **Default Value**: True
+ * `process_escapes`: a boolean value that controls whether mathjax processes escape 
+sequences. **Default Value**: True
+ * `latex_preview`: controls the preview message users are seen while mathjax is
+rendering LaTex. If set to `Tex`, then the TeX code is used as the preview 
+(which will be visible until it is processed by MathJax). **Default Value**: `Tex`
+ * `color`: controls the color of the mathjax rendered font. **Default Value**: `black`
 
 For example, in settings.py, the following would make math render in blue and
 displaymath align to the left:
 
-    LATEX = {'color':'blue','align':left}
+    MATH = {'color':'blue','align':left}
 
-Latex Examples
+LaTex Examples
 --------------
 ###Inline
-Latex between `$`..`$`, for example, `$`x^2`$`, will be rendered inline
+LaTex between `$`..`$`, for example, `$`x^2`$`, will be rendered inline
 with respect to the current html block.
 
 ###Displayed Math
-Latex between `$$`..`$$`, for example, `$$`x^2`$$`, will be rendered centered in a
+LaTex between `$$`..`$$`, for example, `$$`x^2`$$`, will be rendered centered in a
 new paragraph.
 
 ###Equations
-Latex between `\begin` and `\end`, for example, `begin{equation}` x^2 `\end{equation}`,
+LaTex between `\begin` and `\end`, for example, `begin{equation}` x^2 `\end{equation}`,
 will be rendered centered in a new paragraph with a right justified equation number
 at the top of the paragraph. This equation number can be referenced in the document.
 To do this, use a `label` inside of the equation format and then refer to that label
 using `ref`. For example: `begin{equation}` `\label{eq}` X^2 `\end{equation}`. Now
 refer to that equation number by `$`\ref{eq}`$`.
+
+MathML Examples
+---------------
+The following will render the Quadratic formula:
+```
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> 
+  <mrow>
+    <mi>x</mi>
+    <mo>=</mo>
+    <mfrac>
+      <mrow>
+        <mo>&#x2212;</mo>
+        <mi>b</mi>
+        <mo>&#xB1;</mo>
+        <msqrt>
+          <mrow>
+            <msup>
+              <mi>b</mi>
+              <mn>2</mn>
+            </msup>
+            <mo>&#x2212;</mo>
+            <mn>4</mn>
+            <mi>a</mi>
+            <mi>c</mi>
+          </mrow>
+        </msqrt>
+      </mrow>
+      <mrow>
+        <mn>2</mn>
+        <mi>a</mi>
+      </mrow>
+    </mfrac>
+  </mrow>
+</math>
+```
