@@ -35,155 +35,27 @@ _MATHJAX_SETTINGS = {}  # settings that can be specified by the user, used to co
 with open (os.path.dirname(os.path.realpath(__file__))+'/mathjax_script.txt', 'r') as mathjax_script:  # Read the mathjax javascript from file
     _MATHJAX_SCRIPT=mathjax_script.read()
 
+class MathJaxPattern(markdown.inlinepatterns.Pattern):
 
-# Python standard library for binary search, namely bisect is cool but I need
-# specific business logic to evaluate my search predicate, so I am using my
-# own version
-def binary_search(match_tuple, ignore_within):
-    """Determines if t is within tupleList. Using the fact that tupleList is
-    ordered, binary search can be performed which is O(logn)
-    """
+    def __init__(self):
+        markdown.inlinepatterns.Pattern.__init__(self, _MATH_REGEX)
 
-    ignore = False
-    if ignore_within == []:
-        return False
+    def handleMatch(self, m):
+        node = markdown.util.etree.Element('mathjax')
+        node.text = markdown.util.AtomicString(m.group(2) + m.group(3) + m.group(2))
+        return node
 
-    lo = 0
-    hi = len(ignore_within)-1
+class MathJaxTreeProcessor(markdown.treeprocessors.Treeprocessor):
+    def run(self, root):
+        pass
 
-    # Find first value in array where predicate is False
-    # predicate function: tupleList[mid][0] < t[index]
-    while lo < hi:
-        mid = lo + (hi-lo+1)//2
-        if ignore_within[mid][0] < match_tuple[0]:
-            lo = mid
-        else:
-            hi = mid-1
+class MathJaxExtension(markdown.Extension):
+    def extendMarkdown(self, md, md_globals):
+        # Needs to come before escape matching because \ is pretty important in LaTeX
+        md.inlinePatterns.add('mathjax', MathJaxPattern(), '<escape')
 
-    if lo >= 0 and lo <= len(ignore_within)-1:
-        ignore = (ignore_within[lo][0] <= match_tuple[0] and ignore_within[lo][1] >= match_tuple[1])
-
-    return ignore
-
-
-def ignore_content(content):
-    """Creates a list of match span tuples for which content should be ignored
-    e.g. <pre> and <code> tags
-    """
-    ignore_within = []
-
-    # used to detect all <pre> and <code> tags. NOTE: Alter this regex should
-    # additional tags need to be ignored
-    ignore_regex = re.compile(r'<(pre|code)(?:\s.*?)?>.*?</(\1)>', re.DOTALL | re.IGNORECASE)
-
-    for match in ignore_regex.finditer(content):
-        ignore_within.append(match.span())
-
-    return ignore_within
-
-
-def wrap_math(content, ignore_within):
-    """Wraps math in user specified tags.
-
-    This is needed for Typogrify to play nicely with math but it can also be
-    styled by template providers
-    """
-
-    wrap_math.found_math = False
-
-    def math_tag_wrap(match):
-        """function for use in re.sub"""
-
-        # determine if the tags are within <pre> and <code> blocks
-        ignore = binary_search(match.span(1), ignore_within) or binary_search(match.span(4), ignore_within)
-
-        if ignore or match.group(3) == 'math':
-            if match.group(3) == 'math':
-                # Will detect mml, but not wrap anything around it
-                wrap_math.found_math = True
-
-            return match.group(0)
-        else:
-            wrap_math.found_math = True
-            return '<%s>%s</%s>' % (_WRAP_LATEX, match.group(0), _WRAP_LATEX)
-
-    return (_MATH_REGEX.sub(math_tag_wrap, content), wrap_math.found_math)
-
-
-def process_summary(instance, ignore_within):
-    """Summaries need special care. If Latex is cut off, it must be restored.
-
-    In addition, the mathjax script must be included if necessary thereby
-    making it independent to the template
-    """
-
-    process_summary.altered_summary = False
-    insert_mathjax = False
-    end_tag = '</%s>' % _WRAP_LATEX if _WRAP_LATEX is not None else ''
-
-    # use content's _get_summary method to obtain summary
-    summary = instance._get_summary()
-
-    # Determine if there is any math in the summary which are not within the
-    # ignore_within tags
-    math_item = None
-    for math_item in _MATH_SUMMARY_REGEX.finditer(summary):
-        ignore = binary_search(math_item.span(2), ignore_within)
-        if '...' not in math_item.group(5):
-            ignore = ignore or binary_search(math_item.span(5), ignore_within)
-        else:
-            ignore = ignore or binary_search(math_item.span(6), ignore_within)
-
-        if ignore:
-            math_item = None # In <code> or <pre> tags, so ignore
-        else:
-            insert_mathjax = True
-
-    # Repair the math if it was cut off math_item will be the final math
-    # code  matched that is not within <pre> or <code> tags
-    if math_item and '...' in math_item.group(5):
-        if math_item.group(3) is not None:
-            end = r'\end{%s}' % math_item.group(3)
-        elif math_item.group(4) is not None:
-            end = r'</math>'
-        elif math_item.group(2) is not None:
-            end = math_item.group(2)
-
-        search_regex = r'%s(%s.*?%s)' % (re.escape(instance._content[0:math_item.start(1)]), re.escape(math_item.group(1)), re.escape(end))
-        math_match = re.search(search_regex, instance._content, re.DOTALL | re.IGNORECASE)
-
-        if math_match:
-            new_summary = summary.replace(math_item.group(0), math_match.group(1)+'%s ...' % end_tag)
-
-            if new_summary != summary:
-                if _MATHJAX_SETTINGS['auto_insert']:
-                    return new_summary+_MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS)
-                else:
-                    instance.mathjax = True
-                    return new_summary
-
-    def incomplete_end_latex_tag(match):
-        """function for use in re.sub"""
-        if binary_search(match.span(3), ignore_within):
-            return match.group(0)
-
-        process_summary.altered_summary = True
-        return match.group(1) + match.group(4)
-
-    # check for partial math tags at end. These must be removed
-    summary = _MATH_INCOMPLETE_TAG_REGEX.sub(incomplete_end_latex_tag, summary)
-
-    if process_summary.altered_summary or insert_mathjax:
-        if insert_mathjax:
-            if _MATHJAX_SETTINGS['auto_insert']:
-                summary+= _MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS)
-            else:
-                instance.mathjax = True
-
-        return summary
-
-    return None  # Making it explicit that summary was not altered
-
+def makeExtension(configs=None):
+    return MathJaxExtension(configs)
 
 def process_settings(settings):
     """Sets user specified MathJax settings (see README for more details)"""
@@ -254,54 +126,6 @@ def process_settings(settings):
 
             if value == 'force':
                 _MATHJAX_SETTINGS['source'] = "'https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'"
-
-
-def process_content(instance):
-    """Processes content, with logic to ensure that Typogrify does not clash
-    with math.
-
-    In addition, mathjax script is inserted at the end of the content thereby
-    making it independent of the template
-    """
-
-    if not instance._content:
-        return
-
-    ignore_within = ignore_content(instance._content)
-
-    if _WRAP_LATEX:
-        instance._content, math = wrap_math(instance._content, ignore_within)
-    else:
-        math = True if _MATH_REGEX.search(instance._content) else False
-
-    # The user initially set Typogrify to be True, but since it would clash
-    # with math, we set it to False. This means that the default reader will
-    # not call Typogrify, so it is called here, where we are able to control
-    # logic for it ignore math if necessary
-    if _TYPOGRIFY:
-        # Tell Typogrify to ignore the tags that math has been wrapped in
-        # also, Typogrify must always ignore mml (math) tags
-        ignore_tags = [_WRAP_LATEX,'math'] if _WRAP_LATEX else ['math']
-
-        # Exact copy of the logic as found in the default reader
-        instance._content = _TYPOGRIFY(instance._content, ignore_tags)
-        instance.metadata['title'] = _TYPOGRIFY(instance.metadata['title'], ignore_tags)
-
-    if math:
-        if _MATHJAX_SETTINGS['auto_insert']:
-            # Mathjax script added to content automatically. Now it
-            # does not need to be explicitly added to the template
-            instance._content += _MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS)
-        else:
-            # Place the burden on ensuring mathjax script is available to
-            # browser on the template designer (see README for more details)
-            instance.mathjax = True
-
-        # The summary needs special care because math math cannot just be cut
-        # off
-        summary = process_summary(instance, ignore_within)
-        if summary is not None:
-            instance._summary = summary
 
 
 def pelican_init(pelicanobj):
