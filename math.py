@@ -18,8 +18,10 @@ for template builders that want to adjust the look and feel of the math.
 See README for more details.
 """
 
+import sys
 import os
 import re
+import mathjax_markdown_extension
 
 from pelican import signals
 from pelican import contents
@@ -34,28 +36,6 @@ _MATH_INCOMPLETE_TAG_REGEX = None  # used to match math that has been cut off in
 _MATHJAX_SETTINGS = {}  # settings that can be specified by the user, used to control mathjax script settings
 with open (os.path.dirname(os.path.realpath(__file__))+'/mathjax_script.txt', 'r') as mathjax_script:  # Read the mathjax javascript from file
     _MATHJAX_SCRIPT=mathjax_script.read()
-
-class MathJaxPattern(markdown.inlinepatterns.Pattern):
-
-    def __init__(self):
-        markdown.inlinepatterns.Pattern.__init__(self, _MATH_REGEX)
-
-    def handleMatch(self, m):
-        node = markdown.util.etree.Element('mathjax')
-        node.text = markdown.util.AtomicString(m.group(2) + m.group(3) + m.group(2))
-        return node
-
-class MathJaxTreeProcessor(markdown.treeprocessors.Treeprocessor):
-    def run(self, root):
-        pass
-
-class MathJaxExtension(markdown.Extension):
-    def extendMarkdown(self, md, md_globals):
-        # Needs to come before escape matching because \ is pretty important in LaTeX
-        md.inlinePatterns.add('mathjax', MathJaxPattern(), '<escape')
-
-def makeExtension(configs=None):
-    return MathJaxExtension(configs)
 
 def process_settings(settings):
     """Sets user specified MathJax settings (see README for more details)"""
@@ -148,6 +128,13 @@ def pelican_init(pelicanobj):
     # Allows MathJax script to be accessed from template should it be needed
     pelicanobj.settings['MATHJAXSCRIPT'] = _MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS)
 
+
+    # Add the new Markdown extension for mathjax to the current markdown extensions
+    try:
+        pelicanobj.settings['MD_EXTENSIONS'].append(u'render_math.mathjax_markdown_extension')
+    except:
+        pass
+
     # If Typogrify set to True, then we need to handle it manually so it does
     # not conflict with LaTeX
     try:
@@ -198,6 +185,5 @@ def pelican_init(pelicanobj):
 
 def register():
     """Plugin registration"""
-
     signals.initialized.connect(pelican_init)
-    signals.content_object_init.connect(process_content)
+    #signals.content_object_init.connect(process_content)
