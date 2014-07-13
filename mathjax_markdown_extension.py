@@ -18,9 +18,14 @@ for template builders that want to adjust the look and feel of the math.
 See README for more details.
 """
 
+import os
 import markdown
 
+from markdown.util import etree
+
 _MATH_REGEX = r'(?<!\\)(\$\$?|\\begin\{(.+?)\}|<(math)(?:\s.*?)?>)(.+?)(\2|\\end\{\3\}|</\4>)' # used to detect math
+with open (os.path.dirname(os.path.realpath(__file__))+'/mathjax_script.txt', 'r') as mathjax_script:  # Read the mathjax javascript from file
+    _MATHJAX_SCRIPT=mathjax_script.read()
 
 class MathJaxPattern(markdown.inlinepatterns.Pattern):
 
@@ -34,8 +39,11 @@ class MathJaxPattern(markdown.inlinepatterns.Pattern):
 
 class MathJaxTreeProcessor(markdown.treeprocessors.Treeprocessor):
     def run(self, root):
-        print "Tree Processor\n"
-        pass
+        mathjax_script = etree.Element('div')
+        script = etree.SubElement(mathjax_script, 'script')
+        script.set('type','text/javascript')
+        script.text = _MATHJAX_SCRIPT
+        root.append(mathjax_script)
 
 class MathJaxExtension(markdown.Extension):
     def extendMarkdown(self, md, md_globals):

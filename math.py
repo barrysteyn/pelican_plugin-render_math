@@ -126,8 +126,7 @@ def pelican_init(pelicanobj):
     process_settings(settings)
 
     # Allows MathJax script to be accessed from template should it be needed
-    pelicanobj.settings['MATHJAXSCRIPT'] = _MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS)
-
+    #pelicanobj.settings['MATHJAXSCRIPT'] = _MATHJAX_SCRIPT.format(**_MATHJAX_SETTINGS)
 
     # Add the new Markdown extension for mathjax to the current markdown extensions
     try:
