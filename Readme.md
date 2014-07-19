@@ -43,38 +43,9 @@ version of Typogrify is not present and disable Typogrify for the entire site
 
 Usage
 -----
-### Backward Compatibility
-This plugin is backward compatible in the sense that it
-will render previous setups correctly. This is because those
-settings and metadata information is ignored by this version. Therefore
-you can remove them to neaten up your site
-
 ### Templates
 No alteration is needed to a template for this plugin to work. Just install
 the plugin and start writing your Math. 
-
-If on the other hand, you are template designer and want total control
-over the MathJax JavaScript, you can set the `auto_insert` setting to 
-`False` which will cause no MathJax JavaScript to be added to the content.
-
-If you choose this option, you should really know what you are doing. Therefore
-only do this if you are designing your template. There is no real advantage to
-to letting template logic handle the insertion of the MathJax JavaScript other
-than it being slightly neater.
-
-By setting `auto_insert` to `False`, metadata with `key` value of `mathjax`
-will be present in all pages and articles where MathJax should be present.
-The template designer can detect this and then use the `MATHJAXSCRIPT` setting
-which will contain the user specified MathJax script to insert into the content.
-
-For example, this code could be used:
-```
-{% if not MATH['auto_insert'] %}
-    {% if page and page.mathjax or article and article.mathjax %}
-        {{ MATHJAXSCRIPT }}
-    {% endif %}
-{% endif %}
-```
 
 ### Settings
 Certain MathJax rendering options can be set. These options 
