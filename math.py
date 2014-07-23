@@ -98,6 +98,38 @@ def process_settings(pelicanobj):
 
     return mathjax_settings
 
+def configure_typogrify(pelicanobj, mathjax_settings):
+    """Instructs Typogrify to ignore math tags - which allows Typogfrify
+    to play nicely with math related content"""
+
+    if not pelicanobj.settings.get('TYPOGRIFY', False):
+        return
+
+    try:
+        from typogrify.filters import typogrify
+
+        import inspect
+        typogrify_args = inspect.getargspec(typogrify).args
+
+        if len(typogrify_args) < 2 or 'ignore_tags' not in typogrify_args:
+            raise TypeError('Incorrect version of Typogrify')
+
+        # At this point, we are happy to use Typogrify, meaning
+        # it is installed and it is a recent enough version
+        # that can be used to ignore all math
+        # Instantiate markdown extension and append it to the current extensions
+        try:
+            pelicanobj.settings['TYPOGRIFY_IGNORE_TAGS'].append('math')
+            pelicanobj.settings['TYPOGRIFY_IGNORE_TAGS'].append(mathjax_settings['math_tag_wrap'])
+        except:
+            print("\nA more recent version of Pelican is required in order to use Typogrify with this plugin.\nIn order to use math correctly, Typogrify will be disabled")
+            pelicanobj.settings['TYPOGRIFY'] = False
+
+    except ImportError:
+        print("\nTypogrify is not installed, so it is being ignored.\nIf you want to use it, please install via: pip install typogrify\n")
+    except TypeError:
+        print("\nA more recent version of Typogrify is needed for the render_math module.\nPlease upgrade Typogrify to the latest version (anything above version 2.04 is okay).\nTypogrify will be turned off due to this reason.\n")
+
 
 def process_mathjax_script(mathjax_settings):
     """Load the mathjax script template from file, and render with the settings"""
@@ -108,13 +140,9 @@ def process_mathjax_script(mathjax_settings):
 
     return mathjax_template.format(**mathjax_settings)
 
-def pelican_init(pelicanobj):
-    """Loads the mathjax script according to the settings. Instantiate the Python
-    markdown extension, passing in the mathjax script as config parameter
-    """
-
-    # Process settings
-    mathjax_settings = process_settings(pelicanobj)
+def configure_mathjax_for_markdown(pelicanobj, mathjax_settings):
+    """Instantiates a customized markdown extension for handling mathjax
+    related content"""
 
     # Create the configuration for the markdown template
     config = {}
@@ -127,7 +155,25 @@ def pelican_init(pelicanobj):
     except:
         print("\nError - the pelican mathjax markdown extension was not configured, so mathjax will not be work.\nThe error message was as follows - [%s]" % sys.exc_info()[0])
 
-    #Todo - alter typogogrify ignore list
+def mathjax_for_rst(pelicanobj):
+    pass # TODO
+
+def pelican_init(pelicanobj):
+    """Loads the mathjax script according to the settings. Instantiate the Python
+    markdown extension, passing in the mathjax script as config parameter
+    """
+
+    # Process settings
+    mathjax_settings = process_settings(pelicanobj)
+
+    # Configure Typogrify
+    configure_typogrify(pelicanobj, mathjax_settings)
+
+    # Configure Mathjax For Markdown
+    configure_mathjax_for_markdown(pelicanobj)
+
+    # Configure Mathjax For RST
+    configure_mathjax_for_rst(pelicanobj)
 
 def register():
     """Plugin registration"""
