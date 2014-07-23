@@ -102,6 +102,7 @@ def configure_typogrify(pelicanobj, mathjax_settings):
     """Instructs Typogrify to ignore math tags - which allows Typogfrify
     to play nicely with math related content"""
 
+    # If Typogrify is not being used, then just exit
     if not pelicanobj.settings.get('TYPOGRIFY', False):
         return
 
@@ -128,6 +129,7 @@ def configure_typogrify(pelicanobj, mathjax_settings):
     except ImportError:
         print("\nTypogrify is not installed, so it is being ignored.\nIf you want to use it, please install via: pip install typogrify\n")
     except TypeError:
+        pelicanobj.settings['TYPOGRIFY'] = False
         print("\nA more recent version of Typogrify is needed for the render_math module.\nPlease upgrade Typogrify to the latest version (anything above version 2.04 is okay).\nTypogrify will be turned off due to this reason.\n")
 
 
