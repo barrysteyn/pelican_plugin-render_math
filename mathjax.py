@@ -26,7 +26,7 @@ import os
 import sys
 
 from pelican import signals
-from render_math.pelican_mathjax_markdown_extension import PelicanMathJaxExtension
+from pelican_mathjax_markdown_extension import PelicanMathJaxExtension
 
 def process_settings(pelicanobj):
     """Sets user specified MathJax settings (see README for more details)"""
@@ -172,10 +172,10 @@ def pelican_init(pelicanobj):
     configure_typogrify(pelicanobj, mathjax_settings)
 
     # Configure Mathjax For Markdown
-    configure_mathjax_for_markdown(pelicanobj)
+    configure_mathjax_for_markdown(pelicanobj, mathjax_settings)
 
     # Configure Mathjax For RST
-    configure_mathjax_for_rst(pelicanobj)
+    #configure_mathjax_for_rst(pelicanobj)
 
 def register():
     """Plugin registration"""
