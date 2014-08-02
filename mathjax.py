@@ -134,7 +134,7 @@ def process_mathjax_script(mathjax_settings):
 
     return mathjax_template.format(**mathjax_settings)
 
-def configure_mathjax_for_markdown(pelicanobj, mathjax_settings):
+def mathjax_for_markdown(pelicanobj, mathjax_settings):
     """Instantiates a customized markdown extension for handling mathjax
     related content"""
 
@@ -149,8 +149,9 @@ def configure_mathjax_for_markdown(pelicanobj, mathjax_settings):
     except:
         print("\nError - the pelican mathjax markdown extension was not configured, so mathjax will not be work.\nThe error message was as follows - [%s]" % sys.exc_info()[0])
 
-def mathjax_for_rst(pelicanobj):
-    pass # TODO
+def mathjax_for_rst(pelicanobj, mathjax_settings):
+    pelicanobj.settings['DOCUTILS_SETTINGS'] = {'math_output': 'MathJax https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'}
+    rst_add_mathjax.mathjax_script = process_mathjax_script(mathjax_settings)
 
 def pelican_init(pelicanobj):
     """Loads the mathjax script according to the settings. Instantiate the Python
@@ -164,11 +165,21 @@ def pelican_init(pelicanobj):
     configure_typogrify(pelicanobj, mathjax_settings)
 
     # Configure Mathjax For Markdown
-    configure_mathjax_for_markdown(pelicanobj, mathjax_settings)
+    mathjax_for_markdown(pelicanobj, mathjax_settings)
 
     # Configure Mathjax For RST
-    #configure_mathjax_for_rst(pelicanobj)
+    mathjax_for_rst(pelicanobj, mathjax_settings)
+
+def rst_add_mathjax(instance):
+    _, ext = os.path.splitext(os.path.basename(instance.source_path))
+    if ext != '.rst':
+        return
+
+    # If math class is present in text, add the javascript
+    if 'class="math"' in instance._content:
+        instance._content += "<div><script type='text/javascript'>%s</script></div>" % rst_add_mathjax.mathjax_script
 
 def register():
     """Plugin registration"""
     signals.initialized.connect(pelican_init)
+    signals.content_object_init.connect(rst_add_mathjax)
