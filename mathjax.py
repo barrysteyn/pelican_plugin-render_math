@@ -107,13 +107,13 @@ def configure_typogrify(pelicanobj, mathjax_settings):
         return
 
     try:
+        import typogrify
+        from distutils.version import LooseVersion
+        
+        if LooseVersion(typogrify.__version__) < LooseVersion('2.0.5'):
+            raise TypeError('Incorrect version of Typogrify')            
+
         from typogrify.filters import typogrify
-
-        import inspect
-        typogrify_args = inspect.getargspec(typogrify).args
-
-        if len(typogrify_args) < 2 or 'ignore_tags' not in typogrify_args:
-            raise TypeError('Incorrect version of Typogrify')
 
         # At this point, we are happy to use Typogrify, meaning
         # it is installed and it is a recent enough version
