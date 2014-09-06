@@ -45,7 +45,6 @@ def process_settings(pelicanobj):
     mathjax_settings['process_escapes'] = 'true'  # controls whether escapes are processed
     mathjax_settings['latex_preview'] = 'TeX'  # controls what user sees while waiting for LaTex to render
     mathjax_settings['color'] = 'black'  # controls color math is rendered in
-    mathjax_settings['math_tag_wrap'] = 'mathjax'  # the tag with which to wrap detected mathjax
 
     # Source for MathJax: default (below) is to automatically determine what protocol to use
     mathjax_settings['source'] = """'https:' == document.location.protocol
@@ -54,7 +53,7 @@ def process_settings(pelicanobj):
 
     # Get the user specified settings
     try:
-        settings = pelicanobj.settings['MATH']
+        settings = pelicanobj.settings['MATH_JAX']
     except:
         settings = None
 
@@ -93,8 +92,6 @@ def process_settings(pelicanobj):
 
             if value == 'force':
                 mathjax_settings['source'] = "'https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'"
-        if (key == 'wrap_latex' or key == 'math_tag_wrap') and isinstance(value, str):
-            mathjax_settings['math_tag_wrap'] = value
 
     return mathjax_settings
 
@@ -119,12 +116,7 @@ def configure_typogrify(pelicanobj, mathjax_settings):
         # it is installed and it is a recent enough version
         # that can be used to ignore all math
         # Instantiate markdown extension and append it to the current extensions
-        try:
-            pelicanobj.settings['TYPOGRIFY_IGNORE_TAGS'].append('math')
-            pelicanobj.settings['TYPOGRIFY_IGNORE_TAGS'].append(mathjax_settings['math_tag_wrap'])
-        except:
-            print("\nA more recent version of Pelican is required in order to use Typogrify with this plugin.\nIn order to use math correctly, Typogrify will be disabled")
-            pelicanobj.settings['TYPOGRIFY'] = False
+        pelicanobj.settings['TYPOGRIFY_IGNORE_TAGS'].append('.math')  # ignore math class
 
     except ImportError:
         print("\nTypogrify is not installed, so it is being ignored.\nIf you want to use it, please install via: pip install typogrify\n")
@@ -149,7 +141,7 @@ def configure_mathjax_for_markdown(pelicanobj, mathjax_settings):
     # Create the configuration for the markdown template
     config = {}
     config['mathjax_script'] = [process_mathjax_script(mathjax_settings),'Mathjax JavaScript script']
-    config['math_tag_wrap'] = [mathjax_settings['math_tag_wrap'], 'The tag in which mathematics is wrapped']
+    config['math_tag_class'] = ['math', 'The class of the tag in which mathematics is wrapped']
 
     # Instantiate markdown extension and append it to the current extensions
     try:
