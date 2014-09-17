@@ -12,18 +12,21 @@ import markdown
 
 from markdown.util import etree
 from markdown.util import AtomicString
+import sys
 
 class PelicanMathJaxPattern(markdown.inlinepatterns.Pattern):
-    """Inline Pattern for matching mathjax"""
+    """Pattern for matching mathjax"""
 
-    def __init__(self, pelican_mathjax_extension):
-        super(PelicanMathJaxPattern,self).__init__(pelican_mathjax_extension.mathjax_regex)
-        self.math_tag_wrap = pelican_mathjax_extension.getConfig('math_tag_wrap')
+    def __init__(self, pelican_mathjax_extension, tag, pattern):
+        super(PelicanMathJaxPattern,self).__init__(pattern)
+        self.math_tag_class = pelican_mathjax_extension.getConfig('math_tag_class')
         self.pelican_mathjax_extension = pelican_mathjax_extension
+        self.tag = tag
 
     def handleMatch(self, m):
-        node = markdown.util.etree.Element(self.math_tag_wrap)
-        node.text = markdown.util.AtomicString(m.group(2) + m.group(5) + m.group(6))
+        node = markdown.util.etree.Element(self.tag)
+        node.set('class', self.math_tag_class)
+        node.text = markdown.util.AtomicString(m.group('prefix') + m.group('math') + m.group('suffix'))
 
         # If mathjax was successfully matched, then JavaScript needs to be added
         # for rendering. The boolean below indicates this
@@ -59,14 +62,16 @@ class PelicanMathJaxExtension(markdown.Extension):
     def __init__(self, config):
         super(PelicanMathJaxExtension,self).__init__(config)
 
-        # Regex to detect mathjax. To note that it also classifies LaTeX macros as mathjax
-        self.mathjax_regex = r'(?<!\\)(\$\$?|\\begin\{(.+?)\}|<(math)(?:\s.*?)?>)(.+?)(\2|\\end\{\3\}|</\4>)'
+        # Regex to detect mathjax
+        self.mathjax_inline_regex = r'(?<!\\)(?P<prefix>\$)(?P<math>.+?)(?P<suffix>\2)'
+        self.mathjax_display_regex = r'(?P<prefix>(?:(?<!\\)\$\$)|\\begin\{(.+?)\})(?P<math>.+?)(?P<suffix>\2|\\end\{\3\})'
         self.mathjax_needed = False
 
     def extendMarkdown(self, md, md_globals):
         # Process mathjax before escapes are processed since escape processing will
         # intefer with mathjax
-        md.inlinePatterns.add('mathjax', PelicanMathJaxPattern(self), '<escape')
+        md.inlinePatterns.add('mathjax_inlined', PelicanMathJaxPattern(self, 'span', self.mathjax_inline_regex), '<escape')
+        md.inlinePatterns.add('mathjax_displayed', PelicanMathJaxPattern(self, 'div', self.mathjax_display_regex), '<escape')
 
         # If necessary, add the JavaScript Mathjax library to the document. This must
         # be last in the ordered dict (hence it is given the position '_end')
