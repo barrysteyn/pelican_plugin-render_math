@@ -13,7 +13,7 @@ if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {{
         "    displayIndent: '{indent}'," +
         "    showMathMenu: {show_menu}," +
         "    tex2jax: {{ " +
-        "        inlineMath: [ ['$','$'] ], " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
         "        displayMath: [ ['$$','$$'] ]," +
         "        processEscapes: {process_escapes}," +
         "        preview: '{latex_preview}'," +

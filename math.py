@@ -2,12 +2,17 @@
 """
 Math Render Plugin for Pelican
 ==============================
-This plugin allows your site to render Math. It supports both LaTeX and MathML
-using the MathJax JavaScript engine.
+This plugin allows your site to render Math. It uses
+the MathJax JavaScript engine.
 
-The plugin works by creating a Markdown extension which is used during
-the markdown compilation stage. Math therefore gets treated like a
-"first class citizen" in Pelican
+For markdown, the plugin works by creating a Markdown 
+extension which is used during the markdown compilation stage. 
+Math therefore gets treated like a "first class citizen" in Pelican
+
+For reStructuredText, the plugin instructs the rst engine
+to output Mathjax for for math.
+
+The mathjax script is automatically inserted into the HTML.
 
 Typogrify Compatibility
 -----------------------
@@ -26,7 +31,7 @@ import os
 import sys
 
 from pelican import signals
-from pelican_mathjax_markdown_extension import PelicanMathJaxExtension
+from . pelican_mathjax_markdown_extension import PelicanMathJaxExtension
 
 def process_settings(pelicanobj):
     """Sets user specified MathJax settings (see README for more details)"""
@@ -46,11 +51,9 @@ def process_settings(pelicanobj):
     mathjax_settings['latex_preview'] = 'TeX'  # controls what user sees while waiting for LaTex to render
     mathjax_settings['color'] = 'black'  # controls color math is rendered in
 
-    # Source for MathJax: default (below) is to automatically determine what protocol to use
-    mathjax_settings['source'] = """'https:' == document.location.protocol
-                ? 'https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
-                : 'http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'"""
-
+    # Source for MathJax: Works boths for http and https (see http://docs.mathjax.org/en/latest/start.html#secure-access-to-the-cdn)
+    mathjax_settings['source'] = "'//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'"
+    
     # Get the user specified settings
     try:
         settings = pelicanobj.settings['MATH_JAX']
@@ -86,19 +89,12 @@ def process_settings(pelicanobj):
         if key == 'color' and isinstance(value, str):
             mathjax_settings[key] = value
 
-        if key == 'ssl' and isinstance(value, str):
-            if value == 'off':
-                mathjax_settings['source'] = "'http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'"
-
-            if value == 'force':
-                mathjax_settings['source'] = "'https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'"
-
     return mathjax_settings
 
 def configure_typogrify(pelicanobj, mathjax_settings):
     """Instructs Typogrify to ignore math tags - which allows Typogfrify
     to play nicely with math related content"""
-
+    
     # If Typogrify is not being used, then just exit
     if not pelicanobj.settings.get('TYPOGRIFY', False):
         return
@@ -107,8 +103,8 @@ def configure_typogrify(pelicanobj, mathjax_settings):
         import typogrify
         from distutils.version import LooseVersion
         
-        if LooseVersion(typogrify.__version__) < LooseVersion('2.0.5'):
-            raise TypeError('Incorrect version of Typogrify')            
+        if LooseVersion(typogrify.__version__) < LooseVersion('2.0.6'):
+            raise TypeError('Incorrect version of Typogrify')
 
         from typogrify.filters import typogrify
 
@@ -116,14 +112,19 @@ def configure_typogrify(pelicanobj, mathjax_settings):
         # it is installed and it is a recent enough version
         # that can be used to ignore all math
         # Instantiate markdown extension and append it to the current extensions
-        pelicanobj.settings['TYPOGRIFY_IGNORE_TAGS'].append('.math')  # ignore math class
+        pelicanobj.settings['TYPOGRIFY_IGNORE_TAGS'].extend(['.math', 'script'])  # ignore math class and script
 
-    except ImportError:
-        print("\nTypogrify is not installed, so it is being ignored.\nIf you want to use it, please install via: pip install typogrify\n")
-    except TypeError:
-        pelicanobj.settings['TYPOGRIFY'] = False
-        print("\nA more recent version of Typogrify is needed for the render_math module.\nPlease upgrade Typogrify to the latest version (anything above version 2.04 is okay).\nTypogrify will be turned off due to this reason.\n")
+    except (ImportError, TypeError, KeyError) as e:
+        pelicanobj.settings['TYPOGRIFY'] = False  # disable Typogrify
 
+        if isinstance(e, ImportError):
+            print("\nTypogrify is not installed, so it is being ignored.\nIf you want to use it, please install via: pip install typogrify\n")
+
+        if isinstance(e, TypeError):
+            print("\nA more recent version of Typogrify is needed for the render_math module.\nPlease upgrade Typogrify to the latest version (anything equal or above version 2.0.6 is okay).\nTypogrify will be turned off due to this reason.\n")
+
+        if isinstance(e, KeyError):
+            print("\nA more recent version of Pelican is needed for Typogrify to work with render_math.\nPlease upgrade Pelican to the latest version or clone it directly from the master GitHub branch\nTypogrify will be turned off due to this reason\n")
 
 def process_mathjax_script(mathjax_settings):
     """Load the mathjax script template from file, and render with the settings"""
@@ -142,7 +143,7 @@ def mathjax_for_markdown(pelicanobj, mathjax_settings):
     config = {}
     config['mathjax_script'] = [process_mathjax_script(mathjax_settings),'Mathjax JavaScript script']
     config['math_tag_class'] = ['math', 'The class of the tag in which mathematics is wrapped']
-
+    
     # Instantiate markdown extension and append it to the current extensions
     try:
         pelicanobj.settings['MD_EXTENSIONS'].append(PelicanMathJaxExtension(config))
@@ -150,7 +151,7 @@ def mathjax_for_markdown(pelicanobj, mathjax_settings):
         print("\nError - the pelican mathjax markdown extension was not configured, so mathjax will not be work.\nThe error message was as follows - [%s]" % sys.exc_info()[0])
 
 def mathjax_for_rst(pelicanobj, mathjax_settings):
-    pelicanobj.settings['DOCUTILS_SETTINGS'] = {'math_output': 'MathJax https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'}
+    pelicanobj.settings['DOCUTILS_SETTINGS'] = {'math_output': 'MathJax'}
     rst_add_mathjax.mathjax_script = process_mathjax_script(mathjax_settings)
 
 def pelican_init(pelicanobj):
@@ -177,7 +178,7 @@ def rst_add_mathjax(instance):
 
     # If math class is present in text, add the javascript
     if 'class="math"' in instance._content:
-        instance._content += "<div><script type='text/javascript'>%s</script></div>" % rst_add_mathjax.mathjax_script
+        instance._content += "<script type='text/javascript'>%s</script>" % rst_add_mathjax.mathjax_script
 
 def register():
     """Plugin registration"""

@@ -1,1 +1,1 @@
-from .mathjax import *
+from .math import *
