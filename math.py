@@ -141,14 +141,15 @@ def mathjax_for_markdown(pelicanobj, mathjax_settings):
 
     # Create the configuration for the markdown template
     config = {}
-    config['mathjax_script'] = [process_mathjax_script(mathjax_settings),'Mathjax JavaScript script']
-    config['math_tag_class'] = ['math', 'The class of the tag in which mathematics is wrapped']
+    config['mathjax_script'] = process_mathjax_script(mathjax_settings)
     
     # Instantiate markdown extension and append it to the current extensions
     try:
         pelicanobj.settings['MD_EXTENSIONS'].append(PelicanMathJaxExtension(config))
     except:
-        print("\nError - the pelican mathjax markdown extension was not configured, so mathjax will not be work.\nThe error message was as follows - [%s]" % sys.exc_info()[0])
+        sys.excepthook(*sys.exc_info())
+        sys.stderr.write("\nError - the pelican mathjax markdown extension failed to configure. MathJax is non-functional.\n")
+        sys.stderr.flush()
 
 def mathjax_for_rst(pelicanobj, mathjax_settings):
     pelicanobj.settings['DOCUTILS_SETTINGS'] = {'math_output': 'MathJax'}
