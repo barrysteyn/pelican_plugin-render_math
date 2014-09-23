@@ -61,11 +61,16 @@ class PelicanMathJaxExtension(markdown.Extension):
     """A markdown extension enabling mathjax processing in Markdown for Pelican"""
     def __init__(self, config):
 
-        # Default values for config object
-        # (needed for markdown versions > 2.5)
-        self.config['mathjax_script'] = ['', 'Mathjax JavaScript script']
-        self.config['math_tag_class'] = ['math', 'The class of the tag in which mathematics is wrapped']
-        super(PelicanMathJaxExtension,self).__init__(**config)
+        try:
+            # Needed for markdown versions >= 2.5
+            self.config['mathjax_script'] = ['', 'Mathjax JavaScript script']
+            self.config['math_tag_class'] = ['math', 'The class of the tag in which mathematics is wrapped']
+            super(PelicanMathJaxExtension,self).__init__(**config)
+        except AttributeError:
+            # Markdown versions < 2.5
+            config['mathjax_script'] = [config['mathjax_script'], 'Mathjax JavaScript script']
+            config['math_tag_class'] = [config['math_tag_class'], 'The class of the tag in which mathematic is wrapped']
+            super(PelicanMathJaxExtension,self).__init__(config)
 
         # Used as a flag to determine if javascript
         # needs to be injected into a document
