@@ -5,8 +5,8 @@ this by using the [MathJax](http://www.mathjax.org/) javascript engine.
 
 The plugin also ensures that Typogrify and recognized math "play" nicely together, by
 ensuring [Typogrify](https://github.com/mintchaos/typogrify) does not alter math content.
-It requires at a minimum Pelican version 3.5 and Typogrify version 2.0.7 to achieve this.
-If these versions are not available, Typogrify will be disabled.
+It requires at a minimum Pelican version *3.5* and Typogrify version *2.0.7* to work.
+If these versions are not available, Typogrify will be disabled for the entire site.
 
 Both Markdown and reStructuredText is supported.
 
@@ -62,8 +62,8 @@ displaymath align to the left:
 
 #### Resulting HTML
 Inlined math is wrapped in `span` tags, while displayed math is wrapped in `div` tags.
-These tags will have a class attribute that is set to `math`; this attribute
-can obviously be used by template designers to alter the display of math.
+These tags will have a class attribute that is set to `math` which 
+can be used by template designers to alter the display of the math.
 
 Markdown
 --------
@@ -82,10 +82,11 @@ must *not* be any whitespace before the ending `$`. So for example:
 Math between `$$`..`$$`, for example, `$$`x^2`$$`, will be rendered centered in a
 new paragraph.
 
-###Equations
-Math between `\begin` and `\end`, for example, `begin{equation}` x^2 `\end{equation}`,
-will be rendered centered in a new paragraph with a right justified equation number
-at the top of the paragraph. This equation number can be referenced in the document.
+###Latex Macros
+Latex macros are supported, and are automatically treated like displayed math 
+(i.e. it is wrapped in `div` tag). For example, `begin{equation}` x^2 `\end{equation}`,
+will be rendered in its own block with a right justified equation number
+at the top of the block. This equation number can be referenced in the document.
 To do this, use a `label` inside of the equation format and then refer to that label
 using `ref`. For example: `begin{equation}` `\label{eq}` X^2 `\end{equation}`. Now
 refer to that equation number by `$`\ref{eq}`$`.

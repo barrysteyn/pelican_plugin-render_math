@@ -60,22 +60,27 @@ class PelicanMathJaxTreeProcessor(markdown.treeprocessors.Treeprocessor):
 class PelicanMathJaxExtension(markdown.Extension):
     """A markdown extension enabling mathjax processing in Markdown for Pelican"""
     def __init__(self, config):
+
+        # Default values for config object
+        # (needed for markdown versions > 2.5)
         self.config['mathjax_script'] = ['', 'Mathjax JavaScript script']
         self.config['math_tag_class'] = ['math', 'The class of the tag in which mathematics is wrapped']
-
         super(PelicanMathJaxExtension,self).__init__(**config)
 
-        # Regex to detect mathjax
-        self.mathjax_inline_regex = r'(?P<prefix>\$)(?P<math>.+?)(?P<suffix>(?<!\s)\2)'
-        self.mathjax_display_regex = r'(?P<prefix>(?:\$\$)|\\begin\{(.+?)\})(?P<math>.+?)(?P<suffix>\2|\\end\{\3\})'
+        # Used as a flag to determine if javascript
+        # needs to be injected into a document
         self.mathjax_needed = False
 
     def extendMarkdown(self, md, md_globals):
+        # Regex to detect mathjax
+        mathjax_inline_regex = r'(?P<prefix>\$)(?P<math>.+?)(?P<suffix>(?<!\s)\2)'
+        mathjax_display_regex = r'(?P<prefix>\$\$|\\begin\{(.+?)\})(?P<math>.+?)(?P<suffix>\2|\\end\{\3\})'
+
         # Process mathjax before escapes are processed since escape processing will
         # intefer with mathjax. The order in which the displayed and inlined math
         # is registered below matters
-        md.inlinePatterns.add('mathjax_displayed', PelicanMathJaxPattern(self, 'div', self.mathjax_display_regex), '<escape')
-        md.inlinePatterns.add('mathjax_inlined', PelicanMathJaxPattern(self, 'span', self.mathjax_inline_regex), '<escape')
+        md.inlinePatterns.add('mathjax_displayed', PelicanMathJaxPattern(self, 'div', mathjax_display_regex), '<escape')
+        md.inlinePatterns.add('mathjax_inlined', PelicanMathJaxPattern(self, 'span', mathjax_inline_regex), '<escape')
 
         # If necessary, add the JavaScript Mathjax library to the document. This must
         # be last in the ordered dict (hence it is given the position '_end')

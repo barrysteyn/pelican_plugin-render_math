@@ -5,8 +5,8 @@ Math Render Plugin for Pelican
 This plugin allows your site to render Math. It uses
 the MathJax JavaScript engine.
 
-For markdown, the plugin works by creating a Markdown 
-extension which is used during the markdown compilation stage. 
+For markdown, the plugin works by creating a Markdown
+extension which is used during the markdown compilation stage.
 Math therefore gets treated like a "first class citizen" in Pelican
 
 For reStructuredText, the plugin instructs the rst engine
@@ -53,7 +53,7 @@ def process_settings(pelicanobj):
 
     # Source for MathJax: Works boths for http and https (see http://docs.mathjax.org/en/latest/start.html#secure-access-to-the-cdn)
     mathjax_settings['source'] = "'//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'"
-    
+
     # Get the user specified settings
     try:
         settings = pelicanobj.settings['MATH_JAX']
@@ -94,7 +94,7 @@ def process_settings(pelicanobj):
 def configure_typogrify(pelicanobj, mathjax_settings):
     """Instructs Typogrify to ignore math tags - which allows Typogfrify
     to play nicely with math related content"""
-    
+
     # If Typogrify is not being used, then just exit
     if not pelicanobj.settings.get('TYPOGRIFY', False):
         return
@@ -102,8 +102,8 @@ def configure_typogrify(pelicanobj, mathjax_settings):
     try:
         import typogrify
         from distutils.version import LooseVersion
-        
-        if LooseVersion(typogrify.__version__) < LooseVersion('2.0.6'):
+
+        if LooseVersion(typogrify.__version__) < LooseVersion('2.0.7'):
             raise TypeError('Incorrect version of Typogrify')
 
         from typogrify.filters import typogrify
@@ -121,7 +121,7 @@ def configure_typogrify(pelicanobj, mathjax_settings):
             print("\nTypogrify is not installed, so it is being ignored.\nIf you want to use it, please install via: pip install typogrify\n")
 
         if isinstance(e, TypeError):
-            print("\nA more recent version of Typogrify is needed for the render_math module.\nPlease upgrade Typogrify to the latest version (anything equal or above version 2.0.6 is okay).\nTypogrify will be turned off due to this reason.\n")
+            print("\nA more recent version of Typogrify is needed for the render_math module.\nPlease upgrade Typogrify to the latest version (anything equal or above version 2.0.7 is okay).\nTypogrify will be turned off due to this reason.\n")
 
         if isinstance(e, KeyError):
             print("\nA more recent version of Pelican is needed for Typogrify to work with render_math.\nPlease upgrade Pelican to the latest version or clone it directly from the master GitHub branch\nTypogrify will be turned off due to this reason\n")
@@ -142,7 +142,7 @@ def mathjax_for_markdown(pelicanobj, mathjax_settings):
     # Create the configuration for the markdown template
     config = {}
     config['mathjax_script'] = process_mathjax_script(mathjax_settings)
-    
+
     # Instantiate markdown extension and append it to the current extensions
     try:
         pelicanobj.settings['MD_EXTENSIONS'].append(PelicanMathJaxExtension(config))
