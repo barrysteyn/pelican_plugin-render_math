@@ -37,7 +37,7 @@ the plugin and start writing your Math.
 
 ### Settings
 Certain MathJax rendering options can be set. These options 
-are in a dictionary variable called `MATH` in the pelican
+are in a dictionary variable called `MATH_JAX` in the pelican
 settings file.
 
 The dictionary can be set with the following keys:
