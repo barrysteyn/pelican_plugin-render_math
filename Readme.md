@@ -5,10 +5,15 @@ this by using the [MathJax](http://www.mathjax.org/) javascript engine.
 
 The plugin also ensures that Typogrify and recognized math "play" nicely together, by
 ensuring [Typogrify](https://github.com/mintchaos/typogrify) does not alter math content.
-It requires at a minimum Pelican version *3.5* and Typogrify version *2.0.7* to work.
-If these versions are not available, Typogrify will be disabled for the entire site.
 
 Both Markdown and reStructuredText is supported.
+
+Requirements
+------------
+
+Pelican version *3.6* or above is required. Typogrify version *2.0.7* or higher
+is needed for typogrify to play "nicely" with this plugin. If this version is not
+available, Typogrify will be disabled for the entire site.
 
 Installation
 ------------
@@ -30,9 +35,9 @@ In the past, using [Typgogrify](https://github.com/mintchaos/typogrify) would al
 in math that could not be rendered by MathJax. The only option was to ensure
 that Typogrify was disabled in the settings.
 
-The problem has been recitified in this plugin, but it requires [Typogrify version 2.0.7](https://pypi.python.org/pypi/typogrify)
-(or higher) and Pelican version 3.5 or higher. If these versions are not present, the plugin will disable
-Typogrify for the entire site
+The problem has been recitified in this plugin, but it requires at a minimum
+[Typogrify version 2.0.7](https://pypi.python.org/pypi/typogrify) (or higher).
+If this version is not present, the plugin will disable Typogrify for the entire site.
 
 Usage
 -----
