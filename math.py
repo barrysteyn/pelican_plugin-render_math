@@ -6,25 +6,28 @@ This plugin allows your site to render Math. It uses
 the MathJax JavaScript engine.
 
 For markdown, the plugin works by creating a Markdown
-extension which is used during the markdown compilation stage.
-Math therefore gets treated like a "first class citizen" in Pelican
+extension which is used during the markdown compilation
+stage.  Math therefore gets treated like a "first class
+citizen" in Pelican
 
 For reStructuredText, the plugin instructs the rst engine
-to output Mathjax for for math.
+to output Mathjax for all math.
 
-The mathjax script is automatically inserted into the HTML.
+The mathjax script is by default automatically inserted
+into the HTML.
 
 Typogrify Compatibility
 -----------------------
-This plugin now plays nicely with Typogrify, but it requires
-Typogrify version 2.04 or above.
+This plugin now plays nicely with Typogrify, but it
+requires Typogrify version 2.07 or above.
 
 User Settings
 -------------
-Users are also able to pass a dictionary of settings in the settings file which
-will control how the MathJax library renders things. This could be very useful
-for template builders that want to adjust the look and feel of the math.
-See README for more details.
+Users are also able to pass a dictionary of settings
+in the settings file which will control how the MathJax
+library renders things. This could be very useful for
+template builders that want to adjust the look and feel of
+the math.  See README for more details.
 """
 
 import os
@@ -298,7 +301,7 @@ def pelican_init(pelicanobj):
 def rst_add_mathjax(content):
     """Adds mathjax script for reStructuredText"""
 
-    # .rst is the only valid extension for restructured text files
+    # .rst is the only valid extension for reStructuredText files
     _, ext = os.path.splitext(os.path.basename(content.source_path))
     if ext != '.rst':
         return
@@ -313,8 +316,8 @@ def process_rst_and_summaries(content_generators):
     Ensure mathjax script is applied to RST and summaries are
     corrected if specified in user settings.
     
-    Handle content attached to ArticleGenerator and PageGenerator objects,
-    since other Generator types are not known how to be handled.
+    Handles content attached to ArticleGenerator and PageGenerator objects,
+    since the plugin doesn't know how to handle other Generator types.
     
     For reStructuredText content, examine both articles and pages.
     If article or page is reStructuredText and there is math present,
