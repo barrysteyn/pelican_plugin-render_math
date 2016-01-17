@@ -71,6 +71,7 @@ def process_settings(pelicanobj):
     mathjax_settings['process_summary'] = BeautifulSoup is not None  # will fix up summaries if math is cut off. Requires beautiful soup
     mathjax_settings['force_tls'] = 'false'  # will force mathjax to be served by https - if set as False, it will only use https if site is served using https
     mathjax_settings['message_style'] = 'normal'  # This value controls the verbosity of the messages in the lower left-hand corner. Set it to "none" to eliminate all messages
+    mathjax_settings['macros'] = '{}'
 
     # Source for MathJax
     mathjax_settings['source'] = "'//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'"
@@ -192,7 +193,82 @@ def process_settings(pelicanobj):
 
             mathjax_settings[key] = value
 
+        if key == 'macros':
+            text_lines = []
+            macros = parse_tex_macro(*value)
+            for macro in macros:
+                if 'args' in macro.keys():
+                    # number of arguments > 1
+                    text_lines.append("{0}: ['{1}', {2}]".format(macro['name'], macro['definition'], macro['args']))
+                else:
+                    text_lines.append("{0}: '{1}'".format(macro['name'], macro['definition']))
+            mathjax_settings[key] = '{' + ", ".join(text_lines) + '}'
+
+
     return mathjax_settings
+
+def parse_tex_macro(*args):
+    """Returns a list of  from input files.
+
+    Each argument has to be an absolute path to a file. TeX macro definitions
+    are read and each one is translated to a dictionary containing the name
+    without backslash and the definition; if arguments are present, their 
+    number is added too.
+
+    If a macro is defined multiple times, a warning is printed to stdout.
+    The last definition is used.
+
+    Backslashes in the definition are added in order to ensure the proper 
+    form in the final html page.
+
+    Example:
+    >  [{'name': 'pd',
+         'definition': '\\\\\\\\frac{\\\\\\\\partial #1}{\\\\\\\\partial #2}',
+         'args': 2},
+        {'name': 'R', 'definition': '\\\\\\\\mathbb{R}'}]
+    """
+    temp_macros = []
+    for arg in args:
+        with open(arg, 'rt') as input_file:
+            lines = input_file.read().splitlines()
+        for i, command in enumerate(lines):
+            splitted = command.split('{')
+            name_number = splitted[1].split('}')
+            name = name_number[0].strip('\\')
+            # for the definition, remove the last character from the last string which is }
+            # remember that strings are immutable objects in python
+            last_def_token = splitted[-1][:-1]
+            splitted_def = splitted[2:-1] + [last_def_token]
+            complete_def = '{'.join(splitted_def).replace('\\','\\\\\\\\')
+            final_command = {'line': i+1, 'file': arg, 'name': name, 'definition': complete_def}
+            if name_number[1]:
+                # the number of arguments is defined, therefore name_number[1] is not null string
+                args_number = name_number[1].lstrip('[').rstrip(']')
+                final_command['args'] = args_number
+            temp_macros.append(final_command)
+    names = []
+    for macro in temp_macros:
+        names.append(macro['name'])
+    import collections
+    seen = set()
+    duplicate_indices = [names.index(item) for item, count in collections.Counter(names).items() if count > 1]
+    if len(duplicate_indices) > 0:
+        duplicates = [] 
+        for i in duplicate_indices:
+            name = temp_macros[i]['name']
+            duplicate = {'name': name, 'where':[]}
+            for j in temp_macros:
+                if j['name'] == name:
+                    duplicate['where'].append((j['line'], j['file']))
+            duplicates.append(duplicate)
+        exception_text = "WARNING: macros where defined more than once, the last definition is used\n"
+        for dup in duplicates:
+            exception_text += "Macro {} defined in\n".format(dup['name'].strip('\\'))
+            for place in dup['where']:
+                exception_text += "{}, line {}\n".format(place[1], place[0])
+        print(exception_text)
+    # remove line and file keys from temp_macros (added for debug in case of duplicates)
+    return [{k: v for k, v in elem.items() if k in ['name', 'definition', 'args']} for elem in temp_macros]
 
 def process_summary(article):
     """Ensures summaries are not cut off. Also inserts
