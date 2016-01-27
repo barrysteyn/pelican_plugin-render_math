@@ -30,6 +30,7 @@ template builders that want to adjust the look and feel of
 the math.  See README for more details.
 """
 
+import collections
 import os
 import sys
 
@@ -195,7 +196,7 @@ def process_settings(pelicanobj):
 
         if key == 'macros':
             text_lines = []
-            macros = parse_tex_macro(*value)
+            macros = parse_tex_macros(value)
             for macro in macros:
                 if 'args' in macro.keys():
                     # number of arguments > 1
@@ -204,60 +205,48 @@ def process_settings(pelicanobj):
                     text_lines.append("{0}: '{1}'".format(macro['name'], macro['definition']))
             mathjax_settings[key] = '{' + ", ".join(text_lines) + '}'
 
-
     return mathjax_settings
 
-def parse_tex_macro(*args):
-    """Returns a list of  from input files.
+def _load_macro_definitions(*args):
+    """Returns list of lines from files, use absolute path.
 
-    Each argument has to be an absolute path to a file. TeX macro definitions
-    are read and each one is translated to a dictionary containing the name
-    without backslash and the definition; if arguments are present, their 
-    number is added too.
-
-    If a macro is defined multiple times, a warning is printed to stdout.
-    The last definition is used.
-
-    Backslashes in the definition are added in order to ensure the proper 
-    form in the final html page.
-
-    Example:
-    >  [{'name': 'pd',
-         'definition': '\\\\\\\\frac{\\\\\\\\partial #1}{\\\\\\\\partial #2}',
-         'args': 2},
-        {'name': 'R', 'definition': '\\\\\\\\mathbb{R}'}]
-    """
-    temp_macros = []
+    Example: [{'filename': '/home/user/defs.text', 'line_num': 1,
+     'def': '\newcommand{\circ}{2 \pi R}'}]"""
+    output_lines = []
     for arg in args:
         with open(arg, 'rt') as input_file:
             lines = input_file.read().splitlines()
-        for i, command in enumerate(lines):
-            splitted = command.split('{')
-            name_number = splitted[1].split('}')
-            name = name_number[0].strip('\\')
-            # for the definition, remove the last character from the last string which is }
-            # remember that strings are immutable objects in python
-            last_def_token = splitted[-1][:-1]
-            splitted_def = splitted[2:-1] + [last_def_token]
-            complete_def = '{'.join(splitted_def).replace('\\','\\\\\\\\')
-            final_command = {'line': i+1, 'file': arg, 'name': name, 'definition': complete_def}
-            if name_number[1]:
-                # the number of arguments is defined, therefore name_number[1] is not null string
-                args_number = name_number[1].lstrip('[').rstrip(']')
-                final_command['args'] = args_number
-            temp_macros.append(final_command)
+            for index, value in enumerate(lines):
+                line_num = index + 1
+                line = {'filename': arg, 'line_num': line_num, 'def': value}
+                output_lines.append(line)
+    return output_lines
+
+def _filter_duplicates(*macros):
+    """Returns a modified copy of the input list of macros by keeping
+    only the last definition of each duplicate item. Also, if a macro is
+    defined multiple times, a warning is printed to stdout.
+    Unique items are left untouched.
+    """
     names = []
-    for macro in temp_macros:
+    for macro in macros:
         names.append(macro['name'])
-    import collections
+
     seen = set()
-    duplicate_indices = [names.index(item) for item, count in collections.Counter(names).items() if count > 1]
+    # duplicate_indices contains the index of the first time an element appears
+    # more than once in names
+    duplicate_indices = [names.index(item)
+                         for item, count in collections.Counter(names).items()
+                         if count > 1]
+    unique_indices = [names.index(item)
+                      for item, count in collections.Counter(names).items()
+                      if count == 1]
     if len(duplicate_indices) > 0:
-        duplicates = [] 
+        duplicates = []
         for i in duplicate_indices:
-            name = temp_macros[i]['name']
+            name = macros[i]['name']
             duplicate = {'name': name, 'where':[]}
-            for j in temp_macros:
+            for j in macros:
                 if j['name'] == name:
                     duplicate['where'].append((j['line'], j['file']))
             duplicates.append(duplicate)
@@ -267,8 +256,66 @@ def parse_tex_macro(*args):
             for place in dup['where']:
                 exception_text += "{}, line {}\n".format(place[1], place[0])
         print(exception_text)
-    # remove line and file keys from temp_macros (added for debug in case of duplicates)
-    return [{k: v for k, v in elem.items() if k in ['name', 'definition', 'args']} for elem in temp_macros]
+    # I need the last definition for each duplicate definition
+    last_duplicated_indices = []
+    for i, v in enumerate(duplicate_indices):
+        all_indices = []
+        for j, name in enumerate(names):
+            if name == names[v]:
+                all_indices.append(j)
+        last =  max(all_indices)
+        last_duplicated_indices.append(last)
+
+    filtered = [elem for i, elem in enumerate(macros)
+                if i in unique_indices + last_duplicated_indices]
+    return filtered
+
+def parse_tex_macros(args):
+    # ogni arg è un file
+    macros = []
+    for arg in args:
+        lines = _load_macro_definitions(arg)
+        for line in lines:
+            macros.append(_parse_macro(line))
+    _filter_duplicates(*macros)
+    # remove line and file keys from temp_macros
+    # (added for debug in case of duplicates)
+    return [{k: v for k, v in elem.items()
+             if k in ['name', 'definition', 'args']}
+            for elem in macros]
+
+def _parse_macro(arg):
+    """Returns a macro from input raw text.
+
+     The TeX macro definition is read and translated to a
+     dictionary containing the name without backslash and the definition;
+     if arguments are present, their number is added too.
+
+     Backslashes in the definition are added in order to ensure the proper
+    form in the final html page.
+
+     Example:
+    >  {'name': 'pd',
+         'definition': '\\\\\\\\frac{\\\\\\\\partial #1}{\\\\\\\\partial #2}',
+         'args': 2,
+         'file': '/home/user/commands.tex',
+         'line': 1}"""
+    splitted = arg['def'].split('{')
+    name_number = splitted[1].split('}')
+    name = name_number[0].strip('\\')
+    # for the definition, remove the last character from the last string which is }
+    # remember that strings are immutable objects in python
+    last_def_token = splitted[-1][:-1]
+    splitted_def = splitted[2:-1] + [last_def_token]
+    complete_def = '{'.join(splitted_def).replace('\\','\\\\\\\\')
+    final_command = {'line': arg['line_num'], 'file': arg['filename'],
+                     'name': name,
+                     'definition': complete_def}
+    if name_number[1]:
+        # the number of arguments is defined, therefore name_number[1] is not null string
+        args_number = name_number[1].lstrip('[').rstrip(']')
+        final_command['args'] = args_number
+    return final_command
 
 def process_summary(article):
     """Ensures summaries are not cut off. Also inserts
@@ -327,7 +374,6 @@ def process_mathjax_script(mathjax_settings):
     with open (os.path.dirname(os.path.realpath(__file__))
             + '/mathjax_script_template', 'r') as mathjax_script_template:
         mathjax_template = mathjax_script_template.read()
-
     return mathjax_template.format(**mathjax_settings)
 
 def mathjax_for_markdown(pelicanobj, mathjax_script, mathjax_settings):
@@ -425,4 +471,5 @@ def process_rst_and_summaries(content_generators):
 def register():
     """Plugin registration"""
     signals.initialized.connect(pelican_init)
+    # repeated
     signals.all_generators_finalized.connect(process_rst_and_summaries)
